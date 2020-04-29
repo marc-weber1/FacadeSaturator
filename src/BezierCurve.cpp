@@ -152,6 +152,7 @@ bool BezierCurve::remove_point(CurvePoint p){
 	if(p.index<1 || p.index>vertices.size()-2) return false;
 	
 	vertices.erase(vertices.begin()+p.index);
+	shape_points.erase(shape_points.begin()+p.index);
 	return true;
 }
 
