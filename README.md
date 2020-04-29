@@ -1,3 +1,3 @@
 # WINDOWS
 
-msbuild FacadeSaturator.sln /t:FacadeSaturator.sln /p:Platform=x64
+msbuild FacadeSaturator.sln /t:FacadeSaturator-vst2 /p:Platform=x64

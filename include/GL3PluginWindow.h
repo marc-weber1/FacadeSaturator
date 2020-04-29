@@ -53,6 +53,7 @@ public:
 private:
 
 	const char* WINDOW_NAME = "FacadeSaturator";
+	const PuglOptions m_opts;
 
 	unsigned m_width, m_height, m_fps;
 	float m_scale;
