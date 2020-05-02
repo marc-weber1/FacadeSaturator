@@ -3,21 +3,28 @@
 #include "GL3PluginUI.h"
 
 #include <vector>
+#include "IPlugEditorDelegate.h"
 #include "BezierCurve.h"
 
 class TestUI : public GL3PluginUI{
 public:
 
-	TestUI(int kGain_t):
-		  kGain(kGain_t) {}
+	TestUI(iplug::IEditorDelegate* mDelegate_t, int kGain_t):
+		  mDelegate(mDelegate_t), kGain(kGain_t) {}
 	
 	//vv These functions will be called with the correct context selected
 	bool initGLContext() override;
 	void destroyGLContext() override;
 	void drawFrame(PuglView*) override;
+	
+	// UI Manipulation
 	void mouseDown(uint32_t button,double x,double y) override;
 	void mouseUp(uint32_t button,double x,double y) override;
 	void mouseMove(double x, double y) override;
+	
+	// Parameters
+	void setParameterFromUI(int paramIdx, double val);
+	void changeUIOnParamChange(int paramIdx, double val);
 	
 private:
 	GLuint single_color_shader;
@@ -27,6 +34,7 @@ private:
 	GLuint vao;
 	GLuint vbo;
 
+	iplug::IEditorDelegate* mDelegate;
 	int kGain;
 	
 	unsigned char* background_image_data;

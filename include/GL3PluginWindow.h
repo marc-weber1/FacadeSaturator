@@ -37,7 +37,6 @@ public:
 
 
 	GL3PluginWindow(void* pParent, unsigned w, unsigned h, unsigned fps, float scale, const PuglOptions opts,std::unique_ptr<GL3PluginUI>& ui_t);
-	~GL3PluginWindow();
 	
 	void Resize(int w, int h, float scale);
 	void* OpenWindow(void* pParent);

@@ -146,6 +146,30 @@ void TestUI::mouseMove(double x, double y){
 		if(selected_point.exists()){
 			curve.move_point(selected_point,glm::vec2(x,y));
 			curve_updated = true;
+			
+			//DEBUG
+			if(selected_point.index == 0 && selected_point.point_type == VERTEX){
+				setParameterFromUI(kGain,y);
+			}
 		}
 	}
 }
+
+
+
+// Parameter Time
+
+void TestUI::setParameterFromUI(int paramIdx, double val){
+	mDelegate->BeginInformHostOfParamChangeFromUI(paramIdx);
+	mDelegate->SendParameterValueFromUI(paramIdx,val/2+0.5);
+	mDelegate->EndInformHostOfParamChangeFromUI(paramIdx);
+}
+
+void TestUI::changeUIOnParamChange(int paramIdx, double val){
+	if(paramIdx == kGain){
+		curve.move_point( {0,VERTEX,false}, glm::vec2(-1.f,val*2 - 1) ); //DEBUG
+		curve_updated=true;
+	}
+}
+
+//mDelegate->sendCurrentParamValuesFromDelegate();

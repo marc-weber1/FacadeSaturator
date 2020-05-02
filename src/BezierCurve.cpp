@@ -121,7 +121,7 @@ bool BezierCurve::move_point(CurvePoint p,vec2 destination){
 		clampOnGrid(destination);
 		if(p.index >= vertices.size()) return false;
 		
-		if(p.index==0) destination.x=0.f; //Lock the first control point to the left side
+		if(p.index==0) destination.x=-1.f; //Lock the first control point to the left side
 		else if(p.index == vertices.size()-1) destination.x=1.f; //And last to the right side
 		else{
 			if(destination.x < vertices[p.index-1].x) destination.x = vertices[p.index-1].x;

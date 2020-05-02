@@ -14,14 +14,7 @@ static void puglLog(PuglWorld* world, PuglLogLevel level, const char* msg){
 }
 
 
-GL3PluginWindow::GL3PluginWindow(void* pParent,unsigned w, unsigned h, unsigned fps, float scale, const PuglOptions opts, std::unique_ptr<GL3PluginUI>& ui_t): m_width(w), m_height(h), m_fps(fps), m_scale(scale), m_opts(opts), ui(ui_t){
-	world = puglNewWorld(PUGL_PROGRAM, 0);
-
-	// Set up world
-	puglSetClassName(world, "GL3PluginWindow");
-	puglSetLogFunc(world, puglLog);
-	puglSetLogLevel(world, PUGL_LOG_LEVEL_DEBUG);
-}
+GL3PluginWindow::GL3PluginWindow(void* pParent,unsigned w, unsigned h, unsigned fps, float scale, const PuglOptions opts, std::unique_ptr<GL3PluginUI>& ui_t): m_width(w), m_height(h), m_fps(fps), m_scale(scale), m_opts(opts), ui(ui_t){}
 
 PuglStatus GL3PluginWindow::handleEvent(const PuglEvent* event){
 	switch(event->type){
@@ -64,16 +57,18 @@ PuglStatus GL3PluginWindow::handleEvent(const PuglEvent* event){
 	return PUGL_SUCCESS;
 }
 
-GL3PluginWindow::~GL3PluginWindow(){
-	puglFreeView(view);
-	puglFreeWorld(world);
-}
-
 void GL3PluginWindow::Resize(int w,int h,float scale){
 	
 }
 
 void* GL3PluginWindow::OpenWindow(void* pParent){
+	world = puglNewWorld(PUGL_PROGRAM, 0);
+
+	// Set up world
+	puglSetClassName(world, "GL3PluginWindow");
+	puglSetLogFunc(world, puglLog);
+	puglSetLogLevel(world, PUGL_LOG_LEVEL_DEBUG);
+	
 	double startpos[2] = {0.,0.};
 	if(pParent == nullptr){ //For debugging
 		startpos[0]=300.;
@@ -118,6 +113,7 @@ void* GL3PluginWindow::OpenWindow(void* pParent){
 void GL3PluginWindow::CloseWindow(){
 	puglStopTimer(view,REDRAW_TIMER_ID);
 	puglFreeView(view);
+	puglFreeWorld(world);
 }
 
 void GL3PluginWindow::ForceCheckEvents(){

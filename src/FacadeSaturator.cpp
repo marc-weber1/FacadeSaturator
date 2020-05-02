@@ -30,7 +30,7 @@ void FacadeSaturator::ProcessBlock(sample** inputs, sample** outputs, int nFrame
 void* FacadeSaturator::OpenWindow(void* pParent){
 	
 	if(!mWindow){
-		mUI = std::unique_ptr<GL3PluginUI>(new TestUI(kGain));
+		mUI = std::unique_ptr<GL3PluginUI>(new TestUI((IEditorDelegate*) this,kGain));
 		mWindow = std::unique_ptr<GL3PluginWindow>(new GL3PluginWindow((HWND) pParent,PLUG_WIDTH,PLUG_HEIGHT,PLUG_FPS,1.f, //Fix the HWND when porting
 		{4,1,-1,false,false,false,false,false,false},
 		mUI)); 
@@ -50,5 +50,11 @@ void FacadeSaturator::CloseWindow(){
 	mWindow->CloseWindow();
 	mWindow = nullptr;
 	mUI = nullptr;
+}
+
+void FacadeSaturator::OnParamChangeUI(int paramIdx, EParamSource source){
+	if(mUI != nullptr){
+		mUI->changeUIOnParamChange(paramIdx, GetParam(kGain)->Value() / 100.);
+	}
 }
 #endif

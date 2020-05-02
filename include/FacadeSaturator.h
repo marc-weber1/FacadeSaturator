@@ -7,6 +7,8 @@
 
 const int kNumPrograms = 1;
 
+const int kNumPoints = 16;
+
 enum EParams
 {
   kGain = 0,
@@ -23,6 +25,7 @@ public:
 #if IPLUG_EDITOR
   void* OpenWindow(void* pParent);
   void CloseWindow();
+  void OnParamChangeUI(int paramIdx, EParamSource source = kUnknown) override;
 #endif
 
 #if IPLUG_DSP // http://bit.ly/2S64BDd
