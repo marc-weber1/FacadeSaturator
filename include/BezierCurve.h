@@ -21,11 +21,12 @@ const CurvePoint NULL_CURVE_POINT = {-1,VERTEX,false};
 
 class BezierCurve{
 public:
-	BezierCurve();
+	BezierCurve(unsigned int t_max_vertices);
 	
 	CurvePoint add_point(glm::vec2); //Can't add it off the grid
 	CurvePoint check_point(glm::vec2);
 	bool move_point(CurvePoint,glm::vec2); //Can't move it off the grid
+	bool move_point(CurvePoint,float,bool); //Can't move it off the grid
 	bool remove_point(CurvePoint); //Can't remove first or last point, or curve points
 	
 	GLsizei get_stride();
@@ -40,8 +41,9 @@ public:
 private:
 	const double POINT_CLICK_RADIUS = 0.025;
 	const unsigned int CURVE_RESOLUTION = 20;
-	const unsigned int MAX_VERTICES = 16;
 	const GLfloat BEZIER_SCALE = 2.f;
+	
+	unsigned int max_vertices;
 	
 	//CONSTANT: these two vertices should have the same number of points
 	//CONSTANT: both arrays should have a first and a last point at all times,

@@ -123,12 +123,20 @@ void TestUI::mouseDown(uint32_t button,double x,double y){
 	else if(button == RIGHT_MOUSE_BTN){
 		CurvePoint index_at_point = curve.check_point(glm::vec2(x,y));
 		
-		if(!index_at_point.exists()) selected_point = curve.add_point(glm::vec2(x,y));
+		if(!index_at_point.exists()){
+			selected_point = curve.add_point(glm::vec2(x,y));
+			
+			setParameterFromUI(kNumPointsEnabled,(int) curve.get_num_vertices());
+			//Also shift the last point over by 1
+		}
 		else{
 			selected_point=NULL_CURVE_POINT;
 			printf("Removing...\n");
 			curve.remove_point(index_at_point);
 			printf("Removed.\n");
+			
+			setParameterFromUI(kNumPointsEnabled,(int) curve.get_num_vertices());
+			//Also shift the last point back by 1
 		}
 		curve_updated = true;
 	}
@@ -147,29 +155,62 @@ void TestUI::mouseMove(double x, double y){
 			curve.move_point(selected_point,glm::vec2(x,y));
 			curve_updated = true;
 			
-			//DEBUG
-			if(selected_point.index == 0 && selected_point.point_type == VERTEX){
-				setParameterFromUI(kGain,y);
+			
+			int paramNumber = 0;
+			if(selected_point.point_type == VERTEX){
+				paramNumber = kInitCurvePoint;
 			}
+			else if(selected_point.point_type == SHAPE_POINT){
+				paramNumber = kInitShapePoint;
+			}
+			paramNumber += 2*selected_point.index;
+			setParameterFromUI(paramNumber,x/2+0.5);
+			setParameterFromUI(paramNumber+1,y/2+0.5);
 		}
 	}
 }
 
 
 
-// Parameter Time
+// Parameter Manipulation
 
+// UI -> Plugin
 void TestUI::setParameterFromUI(int paramIdx, double val){
 	mDelegate->BeginInformHostOfParamChangeFromUI(paramIdx);
-	mDelegate->SendParameterValueFromUI(paramIdx,val/2+0.5);
+	mDelegate->SendParameterValueFromUI(paramIdx,val);
 	mDelegate->EndInformHostOfParamChangeFromUI(paramIdx);
 }
 
-void TestUI::changeUIOnParamChange(int paramIdx, double val){
-	if(paramIdx == kGain){
-		curve.move_point( {0,VERTEX,false}, glm::vec2(-1.f,val*2 - 1) ); //DEBUG
-		curve_updated=true;
-	}
+//UI -> Plugin
+void TestUI::setParameterFromUI(int paramIdx, int val){
+	mDelegate->BeginInformHostOfParamChangeFromUI(paramIdx);
+	mDelegate->SendParameterValueFromUI(paramIdx,val);
+	mDelegate->EndInformHostOfParamChangeFromUI(paramIdx);
 }
 
-//mDelegate->sendCurrentParamValuesFromDelegate();
+// Plugin -> UI
+void TestUI::changeUIOnParamChange(int paramIdx){
+	if(kInitCurvePoint <= paramIdx && paramIdx < kInitCurvePoint+2*kNumCurvePoints){
+		curve.move_point( {paramIdx/2,VERTEX,false}, (float) (mDelegate->GetParam(paramIdx)->Value()*2/100-1), (paramIdx-kInitCurvePoint)%2 == 1 );
+		curve_updated=true;
+	}
+	else if(kInitShapePoint <= paramIdx && paramIdx < kInitShapePoint+2*kNumCurvePoints){
+		curve.move_point( {paramIdx/2,SHAPE_POINT,false}, (float) (mDelegate->GetParam(paramIdx)->Value()*2/100-1), (paramIdx-kInitShapePoint)%2 == 1 );
+		curve_updated=true;
+	}
+	/*else if(paramIdx == kNumPointsEnabled){
+		int target_num_points = mDelegate->GetParam(paramIdx)->Value();
+		int current_num_points = (int) curve.get_num_vertices();
+		
+		if( current_num_points < target_num_points ){
+			for(int i=0;i<target_num_points-current_num_points;i++){
+				
+			}
+		}
+		else if( target_num_points < current_num_points ){
+			for(int i=0;i<current_num_points-target_num_points;i++){
+				
+			}
+		}
+	}*/
+}

@@ -4,13 +4,14 @@
 
 #include <vector>
 #include "IPlugEditorDelegate.h"
+#include "IPlugParameter.h"
 #include "BezierCurve.h"
 
 class TestUI : public GL3PluginUI{
 public:
 
-	TestUI(iplug::IEditorDelegate* mDelegate_t, int kGain_t):
-		  mDelegate(mDelegate_t), kGain(kGain_t) {}
+	TestUI(iplug::IEditorDelegate* mDelegate_t, int kNumCurvePoints_t, int kInitCurvePoint_t, int kInitShapePoint_t, int kNumPointsEnabled_t):
+		  mDelegate(mDelegate_t), kNumCurvePoints(kNumCurvePoints_t), kInitCurvePoint(kInitCurvePoint_t), kInitShapePoint(kInitShapePoint_t), kNumPointsEnabled(kNumPointsEnabled_t), curve(kNumCurvePoints) {}
 	
 	//vv These functions will be called with the correct context selected
 	bool initGLContext() override;
@@ -24,7 +25,8 @@ public:
 	
 	// Parameters
 	void setParameterFromUI(int paramIdx, double val);
-	void changeUIOnParamChange(int paramIdx, double val);
+	void setParameterFromUI(int paramIdx, int val);
+	void changeUIOnParamChange(int paramIdx);
 	
 private:
 	GLuint single_color_shader;
@@ -35,7 +37,7 @@ private:
 	GLuint vbo;
 
 	iplug::IEditorDelegate* mDelegate;
-	int kGain;
+	int kNumCurvePoints, kInitCurvePoint, kInitShapePoint, kNumPointsEnabled;
 	
 	unsigned char* background_image_data;
 

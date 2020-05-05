@@ -39,7 +39,7 @@ bool CurvePoint::exists(){
 	else return true;
 }
 
-BezierCurve::BezierCurve(){
+BezierCurve::BezierCurve(unsigned int t_max_vertices): max_vertices(t_max_vertices){
 	vertices.push_back(vec2(-1.f,-1.f));
 	shape_points.push_back(vec2(0.1f,0.1f));
 	vertices.push_back(vec2(1.f,1.f));
@@ -116,10 +116,10 @@ CurvePoint BezierCurve::check_point(vec2 click_point){
 bool BezierCurve::move_point(CurvePoint p,vec2 destination){
 	
 	if(p.index<0) return false;
+	if(p.index >= vertices.size()) return false;
 	
 	if(p.point_type==VERTEX){
 		clampOnGrid(destination);
-		if(p.index >= vertices.size()) return false;
 		
 		if(p.index==0) destination.x=-1.f; //Lock the first control point to the left side
 		else if(p.index == vertices.size()-1) destination.x=1.f; //And last to the right side
@@ -131,7 +131,6 @@ bool BezierCurve::move_point(CurvePoint p,vec2 destination){
 		vertices[p.index] = destination;
 	}
 	else if(p.point_type==SHAPE_POINT){
-		if(p.index >= shape_points.size()) return false;
 		
 		// vertices[p.index] + relative_destination = destination, so:
 		vec2 relative_destination = destination - vertices[p.index];
@@ -145,6 +144,21 @@ bool BezierCurve::move_point(CurvePoint p,vec2 destination){
 	}
 	
 	return true;
+}
+
+bool BezierCurve::move_point(CurvePoint p,float newPos,bool vertical){
+	if(p.index<0) return false;
+	if(p.index >= vertices.size()) return false;
+	
+	if(p.point_type == VERTEX){
+		if(vertical) return move_point( p, vec2(vertices[p.index].x,newPos) );
+		else return move_point( p, vec2(newPos,vertices[p.index].y) );
+	}
+	else if(p.point_type == SHAPE_POINT){
+		if(vertical) return move_point( p, vec2(shape_points[p.index].x,newPos) );
+		else return move_point( p, vec2(newPos,shape_points[p.index].y) );
+	}
+	else return false;
 }
 
 bool BezierCurve::remove_point(CurvePoint p){

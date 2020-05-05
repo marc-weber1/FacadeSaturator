@@ -11,7 +11,9 @@ const int kNumPoints = 16;
 
 enum EParams
 {
-  kGain = 0,
+  kInitCurvePoint=0, //each point has an x,y
+  kInitShapePoint=2*kNumPoints,
+  kNumPointsEnabled=4*kNumPoints,
   kNumParams
 };
 
@@ -36,7 +38,7 @@ private:
 
 	//Graphics Window Handling
 	std::unique_ptr<GL3PluginWindow> mWindow;
-	std::unique_ptr<GL3PluginUI> mUI;
+	std::unique_ptr<TestUI> mUI;
 	int mLastWidth = 0;
 	int mLastHeight = 0;
 	float mLastScale = 0.f;
