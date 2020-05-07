@@ -4,6 +4,7 @@
 
 #include "GL3PluginWindow.h"
 #include "TestUI.h"
+#include "ringbuf.h"
 
 const int kNumPrograms = 1;
 
@@ -43,6 +44,6 @@ private:
 	int mLastHeight = 0;
 	float mLastScale = 0.f;
 	bool mClosing = false;
-	
+	WDL_TypedRingBuf<float> oscilloscopeBuffer;
 	
 };

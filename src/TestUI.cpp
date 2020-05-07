@@ -7,11 +7,7 @@
 #include "stb_image.h"
 
 #include "CurveShaders.h"
-
-
-//from loadShaders.cpp : (BAD FORM I KNOW I'LL FIX IT LATER SSH)
-GLuint LoadShaders(const char * VertexSourcePointer, const char * FragmentSourcePointer);
-GLuint LoadShaders(const char * VertexSourcePointer, const char * FragmentSourcePointer, const char* GeometrySourcePointer);
+#include "LoadShaders.h"
 
 
 //openGL drawing
@@ -76,13 +72,24 @@ void TestUI::drawFrame(PuglView* view_t){
 	
 	glClear(GL_COLOR_BUFFER_BIT);
 	
+	// Buffer oscilloscope lines
+	float oscilloscope_sound_buffer[OSCILLOSCOPE_BUFFER_SIZE];
+	oscilloscopeBuffer->Peek(oscilloscope_sound_buffer,0,OSCILLOSCOPE_BUFFER_SIZE);
+	float oscilloscope_vertex_buffer[OSCILLOSCOPE_BUFFER_SIZE*2]; //THIS COULD FUCK UP ON SYSTEMS WHERE GLFLOAT IS NOT FLOAT
+	float_interleave(oscilloscope_vertex_buffer, oscillator_x_coords, oscilloscope_sound_buffer, OSCILLOSCOPE_BUFFER_SIZE);
+	glBufferData(GL_ARRAY_BUFFER,sizeof(oscilloscope_vertex_buffer),oscilloscope_vertex_buffer,GL_STATIC_DRAW);
+	
+	// RENDER OSCILLOSCOPE LINES
+	glUseProgram(single_color_shader);
+	glUniform3fv(line_color_uniform,1,&color_lines.x);
+	glDrawArrays(GL_LINE_STRIP,0,OSCILLOSCOPE_BUFFER_SIZE);
+	
 	// Buffer shape points
 	std::vector<glm::vec2> shape_points; //Could reduce the amount of calls for this
 	curve.get_shape_point_buffer(shape_points);
 	glBufferData(GL_ARRAY_BUFFER,sizeof(glm::vec2)*shape_points.size(),shape_points.data(),GL_STATIC_DRAW);
 	
 	// RENDER THE TANGEANT LINES
-	glUseProgram(single_color_shader);
 	glUniform3fv(line_color_uniform,1,&color_tangeants.x);
 	glDrawArrays(GL_LINES,0,shape_points.size());
 	
@@ -97,15 +104,11 @@ void TestUI::drawFrame(PuglView* view_t){
 	// RENDER THE POINT CIRCLES
 	glDrawArrays(GL_POINTS,0,curve.get_num_vertices());
 	
-	// RENDER THE CURVE LINES
-	glUseProgram(single_color_shader);
-	//glUniform3fv(line_color_uniform,1,&color_lines.x);
-	//glDrawArrays(GL_LINE_STRIP,0,curve.get_num_vertices());
-	
 	// Buffer the hi-res curve
 	glBufferData(GL_ARRAY_BUFFER,(GLsizei) sizeof(glm::vec2)*hires_curve.size(),hires_curve.data(),GL_STATIC_DRAW);
 	
 	// RENDER THE CURVE (hires)
+	glUseProgram(single_color_shader);
 	glUniform3fv(line_color_uniform,1,&color_curve.x);
 	glDrawArrays(GL_LINE_STRIP,0,hires_curve.size());
 }

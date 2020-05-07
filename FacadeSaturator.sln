@@ -6,10 +6,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FacadeSaturator-app", "proj
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FacadeSaturator-vst2", "projects\FacadeSaturator-vst2.vcxproj", "{2EB4846A-93E0-43A0-821E-12237105168F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FacadeSaturator-vst3", "projects\FacadeSaturator-vst3.vcxproj", "{079FC65A-F0E5-4E97-B318-A16D1D0B89DF}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FacadeSaturator-aax", "projects\FacadeSaturator-aax.vcxproj", "{DC4B5920-933D-4C82-B842-F34431D55A93}"
-EndProject
+#Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FacadeSaturator-vst3", "projects\FacadeSaturator-vst3.vcxproj", "{079FC65A-F0E5-4E97-B318-A16D1D0B89DF}"
+#EndProject
+#Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FacadeSaturator-aax", "projects\FacadeSaturator-aax.vcxproj", "{DC4B5920-933D-4C82-B842-F34431D55A93}"
+#EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32

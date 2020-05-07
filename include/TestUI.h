@@ -6,12 +6,20 @@
 #include "IPlugEditorDelegate.h"
 #include "IPlugParameter.h"
 #include "BezierCurve.h"
+#include "ringbuf.h"
+#include "memtools.h"
+
 
 class TestUI : public GL3PluginUI{
 public:
 
-	TestUI(iplug::IEditorDelegate* mDelegate_t, int kNumCurvePoints_t, int kInitCurvePoint_t, int kInitShapePoint_t, int kNumPointsEnabled_t):
-		  mDelegate(mDelegate_t), kNumCurvePoints(kNumCurvePoints_t), kInitCurvePoint(kInitCurvePoint_t), kInitShapePoint(kInitShapePoint_t), kNumPointsEnabled(kNumPointsEnabled_t), curve(kNumCurvePoints) {}
+	TestUI(iplug::IEditorDelegate* mDelegate_t, int kNumCurvePoints_t, int kInitCurvePoint_t, int kInitShapePoint_t, int kNumPointsEnabled_t, WDL_TypedRingBuf<float>* oscilloscopeBuffer_t):
+		  mDelegate(mDelegate_t), kNumCurvePoints(kNumCurvePoints_t), kInitCurvePoint(kInitCurvePoint_t), kInitShapePoint(kInitShapePoint_t), kNumPointsEnabled(kNumPointsEnabled_t),
+		  oscilloscopeBuffer(oscilloscopeBuffer_t), curve(kNumCurvePoints) {
+		oscilloscopeBuffer->SetSize(OSCILLOSCOPE_BUFFER_SIZE);
+		oscilloscopeBuffer->Fill(0.f);
+		generate_ramp(oscillator_x_coords,OSCILLOSCOPE_BUFFER_SIZE);
+	}
 	
 	//vv These functions will be called with the correct context selected
 	bool initGLContext() override;
@@ -35,15 +43,21 @@ private:
 	
 	GLuint vao;
 	GLuint vbo;
+	
 
 	iplug::IEditorDelegate* mDelegate;
 	int kNumCurvePoints, kInitCurvePoint, kInitShapePoint, kNumPointsEnabled;
+	
+	const static int OSCILLOSCOPE_BUFFER_SIZE = 1024;
+	WDL_TypedRingBuf<float>* oscilloscopeBuffer;
+	float oscillator_x_coords[OSCILLOSCOPE_BUFFER_SIZE];
 	
 	unsigned char* background_image_data;
 
 	BezierCurve curve;
 	std::vector<glm::vec2> hires_curve; //This should only be updated on a frame where the curve has been updated
 	bool curve_updated;
+	
 	
 	CurvePoint selected_point = NULL_CURVE_POINT;
 	enum MOUSE_BUTTON{

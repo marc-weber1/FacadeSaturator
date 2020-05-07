@@ -1,3 +1,5 @@
+#pragma once
+
 /**
  * NOT MY FUNCTION;
  * All credit goes towards the following link:

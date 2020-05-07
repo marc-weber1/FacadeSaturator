@@ -269,22 +269,23 @@
     <ClInclude Include="..\resources\resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\iPlug2\IPlug\IPlugAPIBase.cpp" />
-    <ClCompile Include="..\..\iPlug2\IPlug\IPlugParameter.cpp" />
-    <ClCompile Include="..\..\iPlug2\IPlug\IPlugPaths.cpp" />
-    <ClCompile Include="..\..\iPlug2\IPlug\IPlugPluginBase.cpp" />
-    <ClCompile Include="..\..\iPlug2\IPlug\IPlugProcessor.cpp" />
-    <ClCompile Include="..\..\iPlug2\IPlug\IPlugTimer.cpp" />
-    <ClCompile Include="..\..\iPlug2\IPlug\VST2\IPlugVST2.cpp" />
+  <ClCompile Include="..\..\iPlug2\IPlug\IPlugAPIBase.cpp" />
+  <ClCompile Include="..\..\iPlug2\IPlug\IPlugParameter.cpp" />
+  <ClCompile Include="..\..\iPlug2\IPlug\IPlugPaths.cpp" />
+  <ClCompile Include="..\..\iPlug2\IPlug\IPlugPluginBase.cpp" />
+  <ClCompile Include="..\..\iPlug2\IPlug\IPlugProcessor.cpp" />
+  <ClCompile Include="..\..\iPlug2\IPlug\IPlugTimer.cpp" />
+  <ClCompile Include="..\..\iPlug2\IPlug\VST2\IPlugVST2.cpp" />
 	<ClCompile Include="..\..\iPlug2\Dependencies\IGraphics\glad_GL3\src\glad.c" />
+  
 	<ClCompile Include="..\..\pugl\pugl\detail\implementation.c" />
 	<ClCompile Include="..\..\pugl\pugl\detail\win.c" />
 	<ClCompile Include="..\..\pugl\pugl\detail\win_gl.c" />
-    <ClCompile Include="..\src\FacadeSaturator.cpp" />
+
+  <ClCompile Include="..\src\FacadeSaturator.cpp" />
 	<ClCompile Include="..\src\GL3PluginWindow.cpp" />
 	<ClCompile Include="..\src\TestUI.cpp" />
 	<ClCompile Include="..\src\BezierCurve.cpp" />
-	<ClCompile Include="..\src\loadShaders.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resources\main.rc" />
