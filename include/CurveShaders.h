@@ -1,4 +1,13 @@
 
+const char* VERTEX_2D_SHADER_BASIC = 
+	"#version 330 core\n"
+
+	"layout(location=0) in vec2 vertex_pos_modelspace;"
+
+	"void main(){"
+	"	gl_Position = vec4(vertex_pos_modelspace,0,1);"
+	"}"
+	;
 
 const char* SINGLE_COLOR_FRAG_SHADER = 
 	"#version 330 core\n"
@@ -9,16 +18,20 @@ const char* SINGLE_COLOR_FRAG_SHADER =
 
 	"void main(){"
 	"	color = fragment_color;"
-	"}";
-
-const char* VERTEX_2D_SHADER_BASIC = 
+	"}"
+	;
+	
+const char* IMAGE_FRAG_SHADER = 
 	"#version 330 core\n"
-
-	"layout(location=0) in vec2 vertex_pos_modelspace;"
-
+	
+	"uniform sampler2D bg_texture;"
+	
+	"out vec3 color;"
+	
 	"void main(){"
-	"	gl_Position = vec4(vertex_pos_modelspace,0,1);"
-	"}";
+	"	color = texture(bg_texture,0.5*gl_FragCoord.xy+vec2(0.5));"
+	"}"
+	;
 	
 const char* POINT_CIRCLE_GEOMETRY_SHADER = 
 	"#version 330 core\n"
@@ -40,4 +53,5 @@ const char* POINT_CIRCLE_GEOMETRY_SHADER =
 	"	}"
 		
 	"	EndPrimitive();"
-	"}";
+	"}"
+	;

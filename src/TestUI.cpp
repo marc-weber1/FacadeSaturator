@@ -2,6 +2,8 @@
 
 #include "glm/glm.hpp"
 #include <math.h>
+#include <iostream>
+#include <fstream>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -9,22 +11,30 @@
 #include "CurveShaders.h"
 #include "LoadShaders.h"
 
+#include "data_resources.h"
 
 //openGL drawing
 
 bool TestUI::initGLContext(){
+	// DEBUG
+	//std::ofstream debug_file;
+	//debug_file.open("C:/Users/facade/Documents/VSTs/facade-saturator-log.txt");
+	
 	
 	//Compile Shader
 	single_color_shader = LoadShaders(VERTEX_2D_SHADER_BASIC, SINGLE_COLOR_FRAG_SHADER);
 	circle_shader = LoadShaders(VERTEX_2D_SHADER_BASIC, SINGLE_COLOR_FRAG_SHADER, POINT_CIRCLE_GEOMETRY_SHADER);
-	if (!single_color_shader || !circle_shader) {
+	image_shader = LoadShaders(VERTEX_2D_SHADER_BASIC, IMAGE_FRAG_SHADER);
+	if (!single_color_shader || !circle_shader || !image_shader) {
 		printf("Failed to compile shaders.\n");
 		return false;
 	}
 	
+	// SET SINGLE COLOR UNIFORMS
 	glUseProgram(single_color_shader);
 	line_color_uniform = glGetUniformLocation(single_color_shader,"fragment_color");
 	
+	// SET CIRCLE UNIFORMS
 	glUseProgram(circle_shader);
 	// Color of circles does not change, so set it once
 	GLint circle_color_uniform = glGetUniformLocation(circle_shader,"fragment_color");
@@ -32,6 +42,24 @@ bool TestUI::initGLContext(){
 	// Aspect ratio however changes every time the window is configured oops maybe fix that later
 	GLint aspect_ratio_uniform = glGetUniformLocation(circle_shader,"aspect_ratio");
 	glUniform1f(aspect_ratio_uniform,1.f); //Sometimes not 1??
+	
+	// SET IMAGE UNIFORMS
+	glUseProgram(image_shader);
+	//Load the background texture
+	glGenTextures(1, &bg_texture_uniform);
+	glBindTexture(GL_TEXTURE_2D, bg_texture_uniform);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	stbi_set_flip_vertically_on_load(true);
+	int bg_width, bg_height, bg_num_channels;
+	unsigned char* background_image_data = stbi_load_from_memory(DATA_RESOURCES_BG_PNG, sizeof(DATA_RESOURCES_BG_PNG), &bg_width, &bg_height, &bg_num_channels, 0);
+	if(!background_image_data){
+		printf("Failed to load image.\n");
+		return false;
+	}
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bg_width, bg_height, 0, GL_RGB, GL_UNSIGNED_BYTE, background_image_data);
+	stbi_image_free(background_image_data);
+	
 	
 	//Initialize data objects
 	glGenVertexArrays(1, &vao);
@@ -46,9 +74,6 @@ bool TestUI::initGLContext(){
 	);
 	glEnableVertexAttribArray(0);
 	
-	//Load the background texture
-	//background_image_data = stbi_load_from_memory();
-	
 	printf("Context Created.\n");
 	
 	return true;
@@ -59,7 +84,6 @@ void TestUI::destroyGLContext(){
 	glDeleteBuffers(1, &vbo);
 	glDeleteProgram(single_color_shader);
 	glDeleteProgram(circle_shader);
-	stbi_image_free(background_image_data);
 }
 
 void TestUI::drawFrame(PuglView* view_t){
@@ -71,6 +95,14 @@ void TestUI::drawFrame(PuglView* view_t){
 	}
 	
 	glClear(GL_COLOR_BUFFER_BIT);
+	
+	// Buffer background triangles
+	glUseProgram(image_shader);
+	glBufferData(GL_ARRAY_BUFFER,sizeof(ENTIRE_SCREEN),ENTIRE_SCREEN,GL_STATIC_DRAW);
+	
+	// RENDER BG IMAGE
+	glBindTexture(GL_TEXTURE_2D, bg_texture_uniform);
+	glDrawArrays(GL_TRIANGLES,0,sizeof(ENTIRE_SCREEN)/sizeof(glm::vec2));
 	
 	// Buffer oscilloscope lines
 	float oscilloscope_sound_buffer[OSCILLOSCOPE_BUFFER_SIZE];
@@ -132,7 +164,7 @@ void TestUI::mouseDown(uint32_t button,double x,double y){
 			setParameterFromUI(kNumPointsEnabled,(int) curve.get_num_vertices());
 			//Also shift the last point over by 1
 		}
-		else{
+		else if(index_at_point.point_type == VERTEX){
 			selected_point=NULL_CURVE_POINT;
 			printf("Removing...\n");
 			curve.remove_point(index_at_point);
@@ -140,6 +172,9 @@ void TestUI::mouseDown(uint32_t button,double x,double y){
 			
 			setParameterFromUI(kNumPointsEnabled,(int) curve.get_num_vertices());
 			//Also shift the last point back by 1
+		}
+		else if(index_at_point.point_type == SHAPE_POINT){
+			
 		}
 		curve_updated = true;
 	}

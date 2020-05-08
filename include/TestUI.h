@@ -38,8 +38,11 @@ public:
 	
 private:
 	GLuint single_color_shader;
-	GLint line_color_uniform;
 	GLuint circle_shader;
+	GLuint image_shader;
+	
+	GLint line_color_uniform;
+	GLuint bg_texture_uniform;
 	
 	GLuint vao;
 	GLuint vbo;
@@ -51,8 +54,6 @@ private:
 	const static int OSCILLOSCOPE_BUFFER_SIZE = 1024;
 	WDL_TypedRingBuf<float>* oscilloscopeBuffer;
 	float oscillator_x_coords[OSCILLOSCOPE_BUFFER_SIZE];
-	
-	unsigned char* background_image_data;
 
 	BezierCurve curve;
 	std::vector<glm::vec2> hires_curve; //This should only be updated on a frame where the curve has been updated
@@ -73,6 +74,6 @@ private:
 	const glm::vec3 color_lines = {1.f,1.f,1.f};
 	const glm::vec3 color_curve = {0.f,1.f,1.f};
 	
-	//const glm::vec2[6] ENTIRE_SCREEN = { {-1.f,1.f},{-1.f,-1.f},{1.f,-1.f},
-	//									 {-1.f,1.f},{1.f,-1.f}, {1.f,1.f} };
+	const GLfloat ENTIRE_SCREEN[12] = { -1.f,1.f, -1.f,-1.f, 1.f,-1.f,
+										-1.f,1.f, 1.f,-1.f,  1.f,1.f };
 };
