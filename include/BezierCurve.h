@@ -41,7 +41,8 @@ public:
 private:
 	const double POINT_CLICK_RADIUS = 0.025;
 	const unsigned int CURVE_RESOLUTION = 20;
-	const GLfloat BEZIER_SCALE = 2.f;
+	const GLfloat BEZIER_Y_SCALE = 2.f;
+	const glm::vec2 DEFAULT_SHAPE_POINT = glm::vec2(0.1f,0.1f/BEZIER_Y_SCALE);
 	
 	unsigned int max_vertices;
 	

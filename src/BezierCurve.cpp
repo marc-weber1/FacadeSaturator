@@ -49,30 +49,36 @@ BezierCurve::BezierCurve(unsigned int t_max_vertices): max_vertices(t_max_vertic
 CurvePoint BezierCurve::add_point(vec2 location){
 	clampOnGrid(location);
 	
-	//Find out where to insert it by what edge the point is closest to, then insert into the vector
-	double closest_distance_sq = DBL_MAX;
-	int point_index = 0;
-	const size_t edge_num = vertices.size()-1;
-	for(int i=0;i<edge_num;i++){
-		//vertices[i+1] guaranteed safe
-		const double next_distance_sq = minimum_distance_sq(vertices[i],vertices[i+1],location);
-		if(next_distance_sq<closest_distance_sq){
-			closest_distance_sq = next_distance_sq;
-			point_index = i+1;
-		}
+	//Where to put the point?
+	int point_index=0;
+	for(; point_index<vertices.size()-1; point_index++){
+		if( location.x <= vertices[point_index].x ) break;
 	}
 	
-	//The x coord can't preceed the previous or exceed the next
-	if(location.x < vertices[point_index-1].x) location.x = vertices[point_index-1].x;
-	else if(location.x > vertices[point_index].x) location.x = vertices[point_index].x;
-	
-	//Insert the point, keeping the sizes constant
+	//Insert the point
 	std::vector<vec2>::iterator it = vertices.begin();
 	vertices.insert(it+point_index,location);
 	it = shape_points.begin();
-	shape_points.insert(it+point_index,vec2(0.1f,0.1f)); //Maybe change the tangeant direction
+	shape_points.insert(it+point_index,DEFAULT_SHAPE_POINT);
 	
-	return {point_index,VERTEX,false};
+	CurvePoint p = {point_index,VERTEX,false};
+	
+	//Move the last shape point back if necessary
+	if(p.index > 0){
+		if( vertices[p.index].x < vertices[p.index-1].x+shape_points[p.index-1].x ) shape_points[p.index-1].x = vertices[p.index].x-vertices[p.index-1].x;
+	}
+	
+	//Restrict it just like in move_point
+	//Clamp your shape points with the other shape points to keep it functional:
+	if(p.index > 0){ //Let the previous clamp you?
+		if( vertices[p.index].x-shape_points[p.index].x < vertices[p.index-1].x+shape_points[p.index-1].x ) shape_points[p.index].x = vertices[p.index].x-(vertices[p.index-1].x+shape_points[p.index-1].x);
+	}
+	if(p.index < vertices.size()-1){ //Clamp the next?
+		if( vertices[p.index+1].x < vertices[p.index].x+shape_points[p.index].x ) shape_points[p.index].x = vertices[p.index+1].x-vertices[p.index].x;
+		if( vertices[p.index+1].x-shape_points[p.index+1].x < vertices[p.index].x+shape_points[p.index].x ) shape_points[p.index+1].x = vertices[p.index+1].x-(vertices[p.index].x+shape_points[p.index].x);
+	}
+	
+	return p;
 }
 
 CurvePoint BezierCurve::check_point(vec2 click_point){
@@ -124,7 +130,7 @@ bool BezierCurve::move_point(CurvePoint p,vec2 destination){
 		if(p.index==0) destination.x=-1.f; //Lock the first control point to the left side
 		else if(p.index == vertices.size()-1) destination.x=1.f; //And last to the right side
 		else{
-			if(destination.x < vertices[p.index-1].x) destination.x = vertices[p.index-1].x;
+			if(destination.x < vertices[p.index-1].x+shape_points[p.index-1].x) destination.x = vertices[p.index-1].x+shape_points[p.index-1].x; //Lock it to the previous shape point
 			if(destination.x > vertices[p.index+1].x) destination.x = vertices[p.index+1].x;
 		}
 		
@@ -132,15 +138,29 @@ bool BezierCurve::move_point(CurvePoint p,vec2 destination){
 	}
 	else if(p.point_type==SHAPE_POINT){
 		
+		
 		// vertices[p.index] + relative_destination = destination, so:
 		vec2 relative_destination = destination - vertices[p.index];
 		if(p.is_inverted){
 			// vertices[p.index] - relative_destination = destination since it's inverted
 			relative_destination = relative_destination*-1.f; //If it's inverted, reflect it across the vertex
 		}
-		if(relative_destination.x<0) relative_destination.x = 0; //Clamp it so that the graph's tangeant vector can't go backwards
+		if(relative_destination.x<0.f) relative_destination.x = 0.f; //Clamp it so that the graph's tangeant vector can't go backwards
+		
+		//Make sure the graph point is always recoverable:
+		if(relative_destination.y<-2.f) relative_destination.y = -2.f;
+		else if(relative_destination.y>2.f) relative_destination.y = 2.f;
 		
 		shape_points[p.index] = relative_destination;
+	}
+	
+	//Clamp your shape points with the other shape points to keep it functional:
+	if(p.index > 0){ //Let the previous clamp you?
+		if( vertices[p.index].x-shape_points[p.index].x < vertices[p.index-1].x+shape_points[p.index-1].x ) shape_points[p.index].x = vertices[p.index].x-(vertices[p.index-1].x+shape_points[p.index-1].x);
+	}
+	if(p.index < vertices.size()-1){ //Clamp the next?
+		if( vertices[p.index+1].x < vertices[p.index].x+shape_points[p.index].x ) shape_points[p.index].x = vertices[p.index+1].x-vertices[p.index].x;
+		if( vertices[p.index+1].x-shape_points[p.index+1].x < vertices[p.index].x+shape_points[p.index].x ) shape_points[p.index+1].x = vertices[p.index+1].x-(vertices[p.index].x+shape_points[p.index].x);
 	}
 	
 	return true;
@@ -209,8 +229,8 @@ void BezierCurve::get_curve_buffer(std::vector<vec2>& points){
 	
 	for(int i=0;i<num_edges;i++){
 		vec2 p1 = vertices[i];
-		vec2 p2 = vertices[i]+shape_points[i]*BEZIER_SCALE;
-		vec2 p3 = vertices[i+1]-shape_points[i+1]*BEZIER_SCALE;
+		vec2 p2 = vertices[i]+vec2(shape_points[i].x,BEZIER_Y_SCALE*shape_points[i].y);
+		vec2 p3 = vertices[i+1]-vec2(shape_points[i+1].x,BEZIER_Y_SCALE*shape_points[i+1].y);
 		vec2 p4 = vertices[i+1];
 		
 		for(unsigned int j=0;j<CURVE_RESOLUTION;j++){

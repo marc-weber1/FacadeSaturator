@@ -15,6 +15,15 @@ FacadeSaturator::FacadeSaturator(const InstanceInfo& info)
 		GetParam(kInitShapePoint+2*i+1)->InitDouble(PARAM_NAMES[kInitShapePoint+2*i+1], 0., 0., 100., 0.001, "%");
 	}
 	GetParam(kNumPointsEnabled)->InitInt(PARAM_NAMES[kNumPointsEnabled], 2, 2, kNumPoints);
+	
+	GetParam(kInitCurvePoint)->Set(-1.f*100);
+	GetParam(kInitCurvePoint+1)->Set(-1.f*100);
+	GetParam(kInitCurvePoint+2)->Set(1.f*100);
+	GetParam(kInitCurvePoint+3)->Set(1.f*100);
+	GetParam(kInitShapePoint)->Set(0.1f*100);
+	GetParam(kInitShapePoint+1)->Set(0.05f*100);
+	GetParam(kInitShapePoint+2)->Set(0.1f*100);
+	GetParam(kInitShapePoint+3)->Set(0.05f*100);
 }
 
 #if IPLUG_DSP
@@ -34,10 +43,14 @@ void FacadeSaturator::ProcessBlock(sample** inputs, sample** outputs, int nFrame
 	//maybe optimize this so it isnt awful
 	if(mWindow){
 		if(nChans>0){
+			#ifdef SAMPLE_TYPE_FLOAT
+			oscilloscopeBuffer.Add((float*) outputs[0],nFrames);
+			#elif defined(SAMPLE_TYPE_DOUBLE)
 			for(int i=0; i<nFrames; i++){
 				float mval = (float) outputs[0][i];
 				oscilloscopeBuffer.Add(&mval,1);
 			}
+			#endif
 		}
 	}
 }
@@ -62,7 +75,16 @@ void* FacadeSaturator::OpenWindow(void* pParent){
 	}
 	
 	if(mWindow) return mWindow->OpenWindow(pParent);
-	else return nullptr;
+	
+	mUI->changeUIOnParamChange( kNumPointsEnabled );
+	int points_enabled = GetParam(kNumPointsEnabled)->Int();
+	for(int i=0;i<points_enabled;i++){
+		mUI->changeUIOnParamChange(kInitCurvePoint+2*i);
+		mUI->changeUIOnParamChange(kInitCurvePoint+1+2*i);
+		mUI->changeUIOnParamChange(kInitShapePoint+2*i);
+		mUI->changeUIOnParamChange(kInitShapePoint+1+2*i);
+	}
+	
 	return nullptr;
 }
 

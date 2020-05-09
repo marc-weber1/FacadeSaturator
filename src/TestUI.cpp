@@ -48,8 +48,10 @@ bool TestUI::initGLContext(){
 	//Load the background texture
 	glGenTextures(1, &bg_texture_uniform);
 	glBindTexture(GL_TEXTURE_2D, bg_texture_uniform);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	stbi_set_flip_vertically_on_load(true);
 	int bg_width, bg_height, bg_num_channels;
 	unsigned char* background_image_data = stbi_load_from_memory(DATA_RESOURCES_BG_PNG, sizeof(DATA_RESOURCES_BG_PNG), &bg_width, &bg_height, &bg_num_channels, 0);
@@ -58,6 +60,7 @@ bool TestUI::initGLContext(){
 		return false;
 	}
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bg_width, bg_height, 0, GL_RGB, GL_UNSIGNED_BYTE, background_image_data);
+	//glGenerateMipmap(GL_TEXTURE_2D);
 	stbi_image_free(background_image_data);
 	
 	
@@ -97,12 +100,12 @@ void TestUI::drawFrame(PuglView* view_t){
 	glClear(GL_COLOR_BUFFER_BIT);
 	
 	// Buffer background triangles
-	glUseProgram(image_shader);
-	glBufferData(GL_ARRAY_BUFFER,sizeof(ENTIRE_SCREEN),ENTIRE_SCREEN,GL_STATIC_DRAW);
+	//glUseProgram(image_shader);
+	//glBufferData(GL_ARRAY_BUFFER,sizeof(ENTIRE_SCREEN),ENTIRE_SCREEN,GL_STATIC_DRAW);
 	
 	// RENDER BG IMAGE
-	glBindTexture(GL_TEXTURE_2D, bg_texture_uniform);
-	glDrawArrays(GL_TRIANGLES,0,sizeof(ENTIRE_SCREEN)/sizeof(glm::vec2));
+	//glBindTexture(GL_TEXTURE_2D, bg_texture_uniform);
+	//glDrawArrays(GL_TRIANGLES,0,sizeof(ENTIRE_SCREEN)/sizeof(glm::vec2));
 	
 	// Buffer oscilloscope lines
 	float oscilloscope_sound_buffer[OSCILLOSCOPE_BUFFER_SIZE];
@@ -222,7 +225,7 @@ void TestUI::setParameterFromUI(int paramIdx, double val){
 //UI -> Plugin
 void TestUI::setParameterFromUI(int paramIdx, int val){
 	mDelegate->BeginInformHostOfParamChangeFromUI(paramIdx);
-	mDelegate->SendParameterValueFromUI(paramIdx,val);
+	mDelegate->SendParameterValueFromUI(paramIdx,(double) val); //DOESN'T WORK; sets the value over 16??
 	mDelegate->EndInformHostOfParamChangeFromUI(paramIdx);
 }
 
@@ -241,13 +244,13 @@ void TestUI::changeUIOnParamChange(int paramIdx){
 		int current_num_points = (int) curve.get_num_vertices();
 		
 		if( current_num_points < target_num_points ){
-			for(int i=0;i<target_num_points-current_num_points;i++){
-				
+			for(int i=current_num_points+1;i<=target_num_points;i++){
+				curve.add_point(glm::vec2( mDelegate->GetParam(kInitCurvePoint+2*i)->Value()*2/100-1, mDelegate->GetParam(kInitCurvePoint+1+2*i)->Value()*2/100-1 ));
 			}
 		}
 		else if( target_num_points < current_num_points ){
-			for(int i=0;i<current_num_points-target_num_points;i++){
-				
+			for(int i=current_num_points;i>target_num_points;i++){
+				curve.remove_point( {i,VERTEX,false} );
 			}
 		}
 	}*/
