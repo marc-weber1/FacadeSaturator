@@ -48,8 +48,8 @@ bool TestUI::initGLContext(){
 	//Load the background texture
 	glGenTextures(1, &bg_texture_uniform);
 	glBindTexture(GL_TEXTURE_2D, bg_texture_uniform);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	stbi_set_flip_vertically_on_load(true);
@@ -161,20 +161,39 @@ void TestUI::mouseDown(uint32_t button,double x,double y){
 	else if(button == RIGHT_MOUSE_BTN){
 		CurvePoint index_at_point = curve.check_point(glm::vec2(x,y));
 		
-		if(!index_at_point.exists()){
+		if(!index_at_point.exists()){ //Add point
 			selected_point = curve.add_point(glm::vec2(x,y));
 			
 			setParameterFromUI(kNumPointsEnabled,(int) curve.get_num_vertices());
-			//Also shift the last point over by 1
+			//Also update the point values
+			if(selected_point.exists()){
+				for(int i=selected_point.index; i<curve.get_num_vertices(); i++){
+					const glm::vec2 pos = curve.get_position({i,VERTEX,false});
+					setParameterFromUI(kInitCurvePoint+2*i,pos.x/2+0.5);
+					setParameterFromUI(kInitCurvePoint+2*i+1,pos.y/2+0.5);
+					const glm::vec2 shape_pos = curve.get_position({i,SHAPE_POINT,false});
+					setParameterFromUI(kInitShapePoint+2*i,shape_pos.x/2+0.5);
+					setParameterFromUI(kInitShapePoint+2*i+1,shape_pos.y/2+0.5);
+				}
+			}
 		}
-		else if(index_at_point.point_type == VERTEX){
+		else if(index_at_point.point_type == VERTEX){ //Remove point
 			selected_point=NULL_CURVE_POINT;
-			printf("Removing...\n");
-			curve.remove_point(index_at_point);
-			printf("Removed.\n");
+			const int index_to_update = index_at_point.index;
+			const bool point_removed = curve.remove_point(index_at_point);
 			
-			setParameterFromUI(kNumPointsEnabled,(int) curve.get_num_vertices());
-			//Also shift the last point back by 1
+			if(point_removed){
+				setParameterFromUI(kNumPointsEnabled,(int) curve.get_num_vertices());
+				//Also update the point values
+				for(int i=index_to_update; i<curve.get_num_vertices(); i++){
+					const glm::vec2 pos = curve.get_position({i,VERTEX,false});
+					setParameterFromUI(kInitCurvePoint+2*i,pos.x/2+0.5);
+					setParameterFromUI(kInitCurvePoint+2*i+1,pos.y/2+0.5);
+					const glm::vec2 shape_pos = curve.get_position({i,SHAPE_POINT,false});
+					setParameterFromUI(kInitShapePoint+2*i,shape_pos.x/2+0.5);
+					setParameterFromUI(kInitShapePoint+2*i+1,shape_pos.y/2+0.5);
+				}
+			}
 		}
 		else if(index_at_point.point_type == SHAPE_POINT){
 			
@@ -218,6 +237,7 @@ void TestUI::mouseMove(double x, double y){
 // UI -> Plugin
 void TestUI::setParameterFromUI(int paramIdx, double val){
 	mDelegate->BeginInformHostOfParamChangeFromUI(paramIdx);
+	//mDelegate->GetParam(paramIdx)->SetNormalized(val);
 	mDelegate->SendParameterValueFromUI(paramIdx,val);
 	mDelegate->EndInformHostOfParamChangeFromUI(paramIdx);
 }
@@ -225,33 +245,35 @@ void TestUI::setParameterFromUI(int paramIdx, double val){
 //UI -> Plugin
 void TestUI::setParameterFromUI(int paramIdx, int val){
 	mDelegate->BeginInformHostOfParamChangeFromUI(paramIdx);
-	mDelegate->SendParameterValueFromUI(paramIdx,(double) val); //DOESN'T WORK; sets the value over 16??
+	mDelegate->GetParam(paramIdx)->Set((double)val); //DOESN'T WORK; sets the value over 16??
 	mDelegate->EndInformHostOfParamChangeFromUI(paramIdx);
 }
 
 // Plugin -> UI
 void TestUI::changeUIOnParamChange(int paramIdx){
 	if(kInitCurvePoint <= paramIdx && paramIdx < kInitCurvePoint+2*kNumCurvePoints){
-		curve.move_point( {paramIdx/2,VERTEX,false}, (float) (mDelegate->GetParam(paramIdx)->Value()*2/100-1), (paramIdx-kInitCurvePoint)%2 == 1 );
+		curve.move_point( {paramIdx/2,VERTEX,false}, (float) (mDelegate->GetParam(paramIdx)->Value()), (paramIdx-kInitCurvePoint)%2 == 1 );
 		curve_updated=true;
 	}
 	else if(kInitShapePoint <= paramIdx && paramIdx < kInitShapePoint+2*kNumCurvePoints){
-		curve.move_point( {paramIdx/2,SHAPE_POINT,false}, (float) (mDelegate->GetParam(paramIdx)->Value()*2/100-1), (paramIdx-kInitShapePoint)%2 == 1 );
+		curve.move_point( {paramIdx/2,SHAPE_POINT,false}, (float) (mDelegate->GetParam(paramIdx)->Value()), (paramIdx-kInitShapePoint)%2 == 1 );
 		curve_updated=true;
 	}
-	/*else if(paramIdx == kNumPointsEnabled){
-		int target_num_points = mDelegate->GetParam(paramIdx)->Value();
+	else if(paramIdx == kNumPointsEnabled){
+		int target_num_points = mDelegate->GetParam(paramIdx)->Int();
 		int current_num_points = (int) curve.get_num_vertices();
 		
 		if( current_num_points < target_num_points ){
 			for(int i=current_num_points+1;i<=target_num_points;i++){
-				curve.add_point(glm::vec2( mDelegate->GetParam(kInitCurvePoint+2*i)->Value()*2/100-1, mDelegate->GetParam(kInitCurvePoint+1+2*i)->Value()*2/100-1 ));
+				curve.add_point(glm::vec2( mDelegate->GetParam(kInitCurvePoint+2*i)->Value(), mDelegate->GetParam(kInitCurvePoint+1+2*i)->Value() ));
 			}
+			curve_updated=true;
 		}
 		else if( target_num_points < current_num_points ){
-			for(int i=current_num_points;i>target_num_points;i++){
-				curve.remove_point( {i,VERTEX,false} );
+			for(int i=current_num_points-2; i>target_num_points-2; i--){ //Can't remove the last point, keep removing second last
+				curve.remove_point( {current_num_points-2,VERTEX,false} );
 			}
+			curve_updated=true;
 		}
-	}*/
+	}
 }

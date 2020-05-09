@@ -25,6 +25,7 @@ public:
 	
 	CurvePoint add_point(glm::vec2); //Can't add it off the grid
 	CurvePoint check_point(glm::vec2);
+	glm::vec2 get_position(CurvePoint);
 	bool move_point(CurvePoint,glm::vec2); //Can't move it off the grid
 	bool move_point(CurvePoint,float,bool); //Can't move it off the grid
 	bool remove_point(CurvePoint); //Can't remove first or last point, or curve points

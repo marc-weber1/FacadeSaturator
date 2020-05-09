@@ -9,21 +9,17 @@ FacadeSaturator::FacadeSaturator(const InstanceInfo& info)
 : Plugin(info, MakeConfig(kNumParams, kNumPrograms))
 {
 	for(int i=0;i<kNumPoints;i++){
-		GetParam(kInitCurvePoint+2*i)->InitDouble(PARAM_NAMES[kInitCurvePoint+2*i], 0., 0., 100., 0.001, "%");
-		GetParam(kInitCurvePoint+2*i+1)->InitDouble(PARAM_NAMES[kInitCurvePoint+2*i+1], 0., 0., 100., 0.001, "%");
-		GetParam(kInitShapePoint+2*i)->InitDouble(PARAM_NAMES[kInitShapePoint+2*i], 0., 0., 100., 0.001, "%");
-		GetParam(kInitShapePoint+2*i+1)->InitDouble(PARAM_NAMES[kInitShapePoint+2*i+1], 0., 0., 100., 0.001, "%");
+		GetParam(kInitCurvePoint+2*i)->InitDouble(PARAM_NAMES[kInitCurvePoint+2*i], 0., -1., 1., 0.001, "");
+		GetParam(kInitCurvePoint+2*i+1)->InitDouble(PARAM_NAMES[kInitCurvePoint+2*i+1], 0., -1., 1., 0.001, "");
+		GetParam(kInitShapePoint+2*i)->InitDouble(PARAM_NAMES[kInitShapePoint+2*i], 0.1, 0., 1., 0.001, "");
+		GetParam(kInitShapePoint+2*i+1)->InitDouble(PARAM_NAMES[kInitShapePoint+2*i+1], 0.05, -2., 2., 0.001, "");
 	}
 	GetParam(kNumPointsEnabled)->InitInt(PARAM_NAMES[kNumPointsEnabled], 2, 2, kNumPoints);
 	
-	GetParam(kInitCurvePoint)->Set(-1.f*100);
-	GetParam(kInitCurvePoint+1)->Set(-1.f*100);
-	GetParam(kInitCurvePoint+2)->Set(1.f*100);
-	GetParam(kInitCurvePoint+3)->Set(1.f*100);
-	GetParam(kInitShapePoint)->Set(0.1f*100);
-	GetParam(kInitShapePoint+1)->Set(0.05f*100);
-	GetParam(kInitShapePoint+2)->Set(0.1f*100);
-	GetParam(kInitShapePoint+3)->Set(0.05f*100);
+	GetParam(kInitCurvePoint)->Set(-1.);
+	GetParam(kInitCurvePoint+1)->Set(-1.);
+	GetParam(kInitCurvePoint+2)->Set(1.);
+	GetParam(kInitCurvePoint+3)->Set(1.);
 }
 
 #if IPLUG_DSP

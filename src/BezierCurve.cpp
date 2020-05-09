@@ -119,6 +119,15 @@ CurvePoint BezierCurve::check_point(vec2 click_point){
 	else return NULL_CURVE_POINT;
 }
 
+vec2 BezierCurve::get_position(CurvePoint p){
+	if(p.index<0) return vec2(0,0);
+	if(p.index >= vertices.size()) return vec2(0,0);
+	
+	if(p.point_type==VERTEX) return vertices[p.index];
+	else if(p.point_type==SHAPE_POINT) return shape_points[p.index];
+	else return vec2(0,0); //Should never happen
+}
+
 bool BezierCurve::move_point(CurvePoint p,vec2 destination){
 	
 	if(p.index<0) return false;
