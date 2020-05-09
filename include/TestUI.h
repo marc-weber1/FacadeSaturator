@@ -13,12 +13,14 @@
 class TestUI : public GL3PluginUI{
 public:
 
-	TestUI(iplug::IEditorDelegate* mDelegate_t, int kNumCurvePoints_t, int kInitCurvePoint_t, int kInitShapePoint_t, int kNumPointsEnabled_t, WDL_TypedRingBuf<float>* oscilloscopeBuffer_t):
+	TestUI(iplug::IEditorDelegate* mDelegate_t, int kNumCurvePoints_t, int kInitCurvePoint_t, int kInitShapePoint_t, int kNumPointsEnabled_t, WDL_TypedRingBuf<float>* oscilloscopeBuffer_t, int numOscBuffers_t):
 		  mDelegate(mDelegate_t), kNumCurvePoints(kNumCurvePoints_t), kInitCurvePoint(kInitCurvePoint_t), kInitShapePoint(kInitShapePoint_t), kNumPointsEnabled(kNumPointsEnabled_t),
-		  oscilloscopeBuffer(oscilloscopeBuffer_t), curve(kNumCurvePoints) {
-		oscilloscopeBuffer->SetSize(OSCILLOSCOPE_BUFFER_SIZE);
-		oscilloscopeBuffer->Fill(0.f);
-		generate_ramp(oscillator_x_coords,OSCILLOSCOPE_BUFFER_SIZE);
+		  oscilloscopeBuffer(oscilloscopeBuffer_t), curve(kNumCurvePoints), numOscBuffers(numOscBuffers_t) {
+		oscilloscopeBuffer[0].SetSize(OSCILLOSCOPE_BUFFER_SIZE);
+		oscilloscopeBuffer[0].Fill(0.f);
+		oscilloscopeBuffer[1].SetSize(OSCILLOSCOPE_BUFFER_SIZE);
+		oscilloscopeBuffer[1].Fill(0.f);
+		generate_duplicate_ramp(oscilloscope_x_coords,OSCILLOSCOPE_BUFFER_SIZE);
 	}
 	
 	//vv These functions will be called with the correct context selected
@@ -35,6 +37,7 @@ public:
 	void setParameterFromUI(int paramIdx, double val);
 	void setParameterFromUI(int paramIdx, int val);
 	void changeUIOnParamChange(int paramIdx);
+	void updateParametersStartingFrom(int paramIdx);
 	
 private:
 	GLuint single_color_shader;
@@ -51,9 +54,10 @@ private:
 	iplug::IEditorDelegate* mDelegate;
 	int kNumCurvePoints, kInitCurvePoint, kInitShapePoint, kNumPointsEnabled;
 	
-	const static int OSCILLOSCOPE_BUFFER_SIZE = 1024;
+	const static int OSCILLOSCOPE_BUFFER_SIZE = 4096;
+	int numOscBuffers;
 	WDL_TypedRingBuf<float>* oscilloscopeBuffer;
-	float oscillator_x_coords[OSCILLOSCOPE_BUFFER_SIZE];
+	float oscilloscope_x_coords[OSCILLOSCOPE_BUFFER_SIZE*2];
 
 	BezierCurve curve;
 	std::vector<glm::vec2> hires_curve; //This should only be updated on a frame where the curve has been updated
@@ -71,7 +75,7 @@ private:
 	const glm::vec3 color_tangeants = {0.f,1.f,0.f};
 	const glm::vec3 color_shape_circles = {0.5f,0.f,1.f};
 	const glm::vec3 color_circles = {1.f,0.f,1.f};
-	const glm::vec3 color_lines = {1.f,1.f,1.f};
+	const glm::vec3 color_lines = {0.7f,0.7f,0.7f};
 	const glm::vec3 color_curve = {0.f,1.f,1.f};
 	
 	const GLfloat ENTIRE_SCREEN[12] = { -1.f,1.f, -1.f,-1.f, 1.f,-1.f,

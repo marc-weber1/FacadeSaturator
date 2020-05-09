@@ -38,13 +38,13 @@ void FacadeSaturator::ProcessBlock(sample** inputs, sample** outputs, int nFrame
 	//LEFT CHANNEL ONLY RIGHT NOW; for debug
 	//maybe optimize this so it isnt awful
 	if(mWindow){
-		if(nChans>0){
+		for(int c=0; c<2 && c<nChans; c++){
 			#ifdef SAMPLE_TYPE_FLOAT
-			oscilloscopeBuffer.Add((float*) outputs[0],nFrames);
+			oscilloscopeBuffer[c].Add((float*) outputs[c],nFrames);
 			#elif defined(SAMPLE_TYPE_DOUBLE)
 			for(int i=0; i<nFrames; i++){
-				float mval = (float) outputs[0][i];
-				oscilloscopeBuffer.Add(&mval,1);
+				float mval = (float) outputs[c][i];
+				oscilloscopeBuffer[c].Add(&mval,1);
 			}
 			#endif
 		}
@@ -61,7 +61,7 @@ void FacadeSaturator::ProcessBlock(sample** inputs, sample** outputs, int nFrame
 void* FacadeSaturator::OpenWindow(void* pParent){
 	
 	if(!mWindow){
-		mUI = std::unique_ptr<TestUI>(new TestUI((IEditorDelegate*) this,kNumPoints,kInitCurvePoint,kInitShapePoint,kNumPointsEnabled,&oscilloscopeBuffer));
+		mUI = std::unique_ptr<TestUI>(new TestUI((IEditorDelegate*) this,kNumPoints,kInitCurvePoint,kInitShapePoint,kNumPointsEnabled,oscilloscopeBuffer,NOutChansConnected()));
 		mWindow = std::unique_ptr<GL3PluginWindow>(new GL3PluginWindow((HWND) pParent,PLUG_WIDTH,PLUG_HEIGHT,PLUG_FPS,1.f, //Fix the HWND when porting
 		{4,1,-1,false,false,false,false,false,false},
 		(GL3PluginUI*) mUI.get())); 

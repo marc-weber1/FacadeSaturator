@@ -44,6 +44,6 @@ private:
 	int mLastHeight = 0;
 	float mLastScale = 0.f;
 	bool mClosing = false;
-	WDL_TypedRingBuf<float> oscilloscopeBuffer;
+	WDL_TypedRingBuf<float> oscilloscopeBuffer[2];
 	
 };

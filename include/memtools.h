@@ -7,6 +7,14 @@ inline void generate_ramp(float* buf, size_t buf_size){
 	}
 }
 
+// OPTIMIZE THIS PLEASE
+inline void generate_duplicate_ramp(float* buf, size_t buf_size){
+	for(int i=0; i<buf_size; i++){
+		buf[2*i] = 2.f*i/buf_size-1.f;
+		buf[2*i+1] = buf[2*i];
+	}
+}
+
 // test vertex interleave (OPTIMIZE LATER PLEASE)
 // sizeof(dest) = 2*sizeof(src1) = 2*sizeof(src2) = 2*sizeof(float)*src_len
 inline void float_interleave(float* dest, float* src1, float* src2, size_t src_len){
