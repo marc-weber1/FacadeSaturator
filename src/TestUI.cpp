@@ -2,8 +2,6 @@
 
 #include "glm/glm.hpp"
 #include <math.h>
-#include <iostream>
-#include <fstream>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -17,13 +15,13 @@
 
 bool TestUI::initGLContext(){
 	// DEBUG
-	std::ofstream debug_file;
-	debug_file.open("C:/Users/facade/Documents/VSTs/facade-saturator-log.txt");
-	for(int i=0;i<2*OSCILLOSCOPE_BUFFER_SIZE;i++){
-		debug_file << oscilloscope_x_coords[i];
-		debug_file << " " << std::endl;
-	}
-	debug_file.close();
+	//std::ofstream debug_file;
+	//debug_file.open("C:/Users/facade/Documents/VSTs/facade-saturator-log.txt");
+	//for(int i=0;i<2*OSCILLOSCOPE_BUFFER_SIZE;i++){
+	//	debug_file << oscilloscope_x_coords[i];
+	//	debug_file << " " << std::endl;
+	//}
+	//debug_file.close();
 	
 	
 	//Compile Shader
@@ -177,7 +175,7 @@ void TestUI::mouseDown(uint32_t button,double x,double y){
 		if(!index_at_point.exists()){ //Add point
 			selected_point = curve.add_point(glm::vec2(x,y));
 			
-			setParameterFromUI(kNumPointsEnabled,(int) curve.get_num_vertices());
+			setParameterFromUI(kNumPointsEnabled,(double) curve.get_num_vertices());
 			//Also update the point values
 			if(selected_point.exists()){
 				updateParametersStartingFrom(selected_point.index);
@@ -189,7 +187,7 @@ void TestUI::mouseDown(uint32_t button,double x,double y){
 			const bool point_removed = curve.remove_point(index_at_point);
 			
 			if(point_removed){
-				setParameterFromUI(kNumPointsEnabled,(int) curve.get_num_vertices());
+				setParameterFromUI(kNumPointsEnabled,(double) curve.get_num_vertices());
 				updateParametersStartingFrom(index_to_update);
 			}
 		}
@@ -210,7 +208,7 @@ void TestUI::mouseUp(uint32_t button,double x,double y){
 void TestUI::mouseMove(double x, double y){
 	if( mouse_down[LEFT_MOUSE_BTN] || mouse_down[RIGHT_MOUSE_BTN] ){
 		if(selected_point.exists()){
-			curve.move_point(selected_point,glm::vec2(x,y));
+			glm::vec2 moved_to = curve.move_point(selected_point,glm::vec2(x,y));
 			curve_updated = true;
 			
 			
@@ -222,8 +220,8 @@ void TestUI::mouseMove(double x, double y){
 				paramNumber = kInitShapePoint;
 			}
 			paramNumber += 2*selected_point.index;
-			setParameterFromUI(paramNumber,x);
-			setParameterFromUI(paramNumber+1,y);
+			setParameterFromUI(paramNumber,moved_to.x);
+			setParameterFromUI(paramNumber+1,moved_to.y);
 		}
 	}
 }
@@ -232,32 +230,25 @@ void TestUI::mouseMove(double x, double y){
 
 // Parameter Manipulation
 
-// UI -> Plugin
-void TestUI::setParameterFromUI(int paramIdx, double val){
-	mDelegate->BeginInformHostOfParamChangeFromUI(paramIdx);
-	//mDelegate->GetParam(paramIdx)->SetNormalized(val);
-	mDelegate->SendParameterValueFromUI(paramIdx,val/2+0.5);
-	mDelegate->EndInformHostOfParamChangeFromUI(paramIdx);
-}
-
 //UI -> Plugin
-void TestUI::setParameterFromUI(int paramIdx, int val){
+void TestUI::setParameterFromUI(int paramIdx, double val){
 	double min = mDelegate->GetParam(paramIdx)->GetMin();
 	double max = mDelegate->GetParam(paramIdx)->GetMax();
 	
 	mDelegate->BeginInformHostOfParamChangeFromUI(paramIdx);
-	mDelegate->SendParameterValueFromUI(paramIdx,(1.0*val-min)/(max-min));
+	mDelegate->SendParameterValueFromUI(paramIdx,(val-min)/(max-min));
 	mDelegate->EndInformHostOfParamChangeFromUI(paramIdx);
 }
 
 // Plugin -> UI
 void TestUI::changeUIOnParamChange(int paramIdx){
 	if(kInitCurvePoint <= paramIdx && paramIdx < kInitCurvePoint+2*kNumCurvePoints){
-		curve.move_point( {paramIdx/2,VERTEX,false}, (float) (mDelegate->GetParam(paramIdx)->Value()), (paramIdx-kInitCurvePoint)%2 == 1 );
+		curve.move_point( {(paramIdx-kInitCurvePoint)/2,VERTEX,false}, (float) (mDelegate->GetParam(paramIdx)->Value()), (paramIdx-kInitCurvePoint)%2 == 1 );
 		curve_updated=true;
 	}
 	else if(kInitShapePoint <= paramIdx && paramIdx < kInitShapePoint+2*kNumCurvePoints){
-		curve.move_point( {paramIdx/2,SHAPE_POINT,false}, (float) (mDelegate->GetParam(paramIdx)->Value()), (paramIdx-kInitShapePoint)%2 == 1 );
+		curve.move_point( {(paramIdx-kInitShapePoint)/2,SHAPE_POINT,false}, (float) (mDelegate->GetParam(paramIdx)->Value()), (paramIdx-kInitShapePoint)%2 == 1 );
+		
 		curve_updated=true;
 	}
 	else if(paramIdx == kNumPointsEnabled){
@@ -267,27 +258,40 @@ void TestUI::changeUIOnParamChange(int paramIdx){
 		if( current_num_points < target_num_points ){
 			for(int i=current_num_points+1;i<=target_num_points;i++){
 				curve.add_point(glm::vec2( mDelegate->GetParam(kInitCurvePoint+2*i)->Value(), mDelegate->GetParam(kInitCurvePoint+1+2*i)->Value() ));
+				
+				//curve.move_point( {i,SHAPE_POINT,false}, (float) (mDelegate->GetParam(kInitShapePoint+2*i)->Value()), false);
+				//curve.move_point( {i,SHAPE_POINT,false}, (float) (mDelegate->GetParam(kInitShapePoint+2*i+1)->Value()), true);
+				
 			}
-			updateParametersStartingFrom(1);
+			//updateParametersStartingFrom(1);
 			curve_updated=true;
 		}
 		else if( target_num_points < current_num_points ){
 			for(int i=current_num_points-2; i>target_num_points-2; i--){ //Can't remove the last point, keep removing second last
 				curve.remove_point( {current_num_points-2,VERTEX,false} );
 			}
-			updateParametersStartingFrom(curve.get_num_vertices()-1);
+			//Update the last shape point
+			int last_point = curve.get_num_vertices()-1;
+			const glm::vec2 shape_pos = curve.get_position({last_point,SHAPE_POINT,false});
+			setParameterFromUI(kInitShapePoint+2*last_point,shape_pos.x);
+			setParameterFromUI(kInitShapePoint+2*last_point+1,shape_pos.y);
 			curve_updated=true;
 		}
 	}
 }
 
 void TestUI::updateParametersStartingFrom(int paramIdx){
-	for(int i=paramIdx; i<curve.get_num_vertices(); i++){
+	for(int i=kInitCurvePoint+paramIdx; i<curve.get_num_vertices(); i++){
 		const glm::vec2 pos = curve.get_position({i,VERTEX,false});
 		setParameterFromUI(kInitCurvePoint+2*i,pos.x);
 		setParameterFromUI(kInitCurvePoint+2*i+1,pos.y);
-		const glm::vec2 shape_pos = curve.get_position({i,SHAPE_POINT,false});
-		setParameterFromUI(kInitShapePoint+2*i,shape_pos.x);
-		setParameterFromUI(kInitShapePoint+2*i+1,shape_pos.y);
+		//const glm::vec2 shape_pos = curve.get_position({i,SHAPE_POINT,false});
+		//setParameterFromUI(kInitShapePoint+2*i,shape_pos.x);
+		//setParameterFromUI(kInitShapePoint+2*i+1,shape_pos.y);
 	}
+	//int last_point = curve.get_num_vertices()-1;
+	//const glm::vec2 shape_pos = curve.get_position({last_point,SHAPE_POINT,false});
+	//setParameterFromUI(kInitShapePoint+2*last_point,shape_pos.x);
+	//setParameterFromUI(kInitShapePoint+2*last_point+1,shape_pos.y);
+	
 }

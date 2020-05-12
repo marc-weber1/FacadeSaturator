@@ -9,6 +9,9 @@
 #include "ringbuf.h"
 #include "memtools.h"
 
+#include <iostream>
+#include <fstream>
+
 
 class TestUI : public GL3PluginUI{
 public:
@@ -21,6 +24,9 @@ public:
 		oscilloscopeBuffer[1].SetSize(OSCILLOSCOPE_BUFFER_SIZE);
 		oscilloscopeBuffer[1].Fill(0.f);
 		generate_duplicate_ramp(oscilloscope_x_coords,OSCILLOSCOPE_BUFFER_SIZE);
+		
+		//DEBUG
+		debug_file.open("C:/Users/facade/Documents/VSTs/facade-saturator-log.txt");
 	}
 	
 	//vv These functions will be called with the correct context selected
@@ -35,11 +41,12 @@ public:
 	
 	// Parameters
 	void setParameterFromUI(int paramIdx, double val);
-	void setParameterFromUI(int paramIdx, int val);
 	void changeUIOnParamChange(int paramIdx);
 	void updateParametersStartingFrom(int paramIdx);
 	
 private:
+	std::ofstream debug_file; //for debug messages
+
 	GLuint single_color_shader;
 	GLuint circle_shader;
 	GLuint image_shader;

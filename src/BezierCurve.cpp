@@ -41,9 +41,9 @@ bool CurvePoint::exists(){
 
 BezierCurve::BezierCurve(unsigned int t_max_vertices): max_vertices(t_max_vertices){
 	vertices.push_back(vec2(-1.f,-1.f));
-	shape_points.push_back(vec2(0.1f,0.1f));
+	shape_points.push_back(DEFAULT_SHAPE_POINT);
 	vertices.push_back(vec2(1.f,1.f));
-	shape_points.push_back(vec2(0.1f,0.1f));
+	shape_points.push_back(DEFAULT_SHAPE_POINT);
 }
 
 CurvePoint BezierCurve::add_point(vec2 location){
@@ -120,18 +120,18 @@ CurvePoint BezierCurve::check_point(vec2 click_point){
 }
 
 vec2 BezierCurve::get_position(CurvePoint p){
-	if(p.index<0) return vec2(0,0);
-	if(p.index >= vertices.size()) return vec2(0,0);
+	if(p.index<0) return vec2(0.f,0.f);
+	if(p.index >= vertices.size()) return vec2(0.f,0.f);
 	
 	if(p.point_type==VERTEX) return vertices[p.index];
 	else if(p.point_type==SHAPE_POINT) return shape_points[p.index];
-	else return vec2(0,0); //Should never happen
+	else return vec2(0.f,0.f); //Should never happen
 }
 
-bool BezierCurve::move_point(CurvePoint p,vec2 destination){
+vec2 BezierCurve::move_point(CurvePoint p,vec2 destination){
 	
-	if(p.index<0) return false;
-	if(p.index >= vertices.size()) return false;
+	if(p.index<0) return vec2(0.f,0.f);
+	if(p.index >= vertices.size()) return vec2(0.f,0.f);
 	
 	if(p.point_type==VERTEX){
 		clampOnGrid(destination);
@@ -172,22 +172,24 @@ bool BezierCurve::move_point(CurvePoint p,vec2 destination){
 		if( vertices[p.index+1].x-shape_points[p.index+1].x < vertices[p.index].x+shape_points[p.index].x ) shape_points[p.index+1].x = vertices[p.index+1].x-(vertices[p.index].x+shape_points[p.index].x);
 	}
 	
-	return true;
+	if(p.point_type==VERTEX) return vertices[p.index];
+	else if(p.point_type==SHAPE_POINT) return shape_points[p.index];
+	else return vec2(0.f,0.f); //Should not happen
 }
 
-bool BezierCurve::move_point(CurvePoint p,float newPos,bool vertical){
-	if(p.index<0) return false;
-	if(p.index >= vertices.size()) return false;
+float BezierCurve::move_point(CurvePoint p,float newPos,bool vertical){
+	if(p.index<0) return 0.f;
+	if(p.index >= vertices.size()) return 0.f;
 	
 	if(p.point_type == VERTEX){
-		if(vertical) return move_point( p, vec2(vertices[p.index].x,newPos) );
-		else return move_point( p, vec2(newPos,vertices[p.index].y) );
+		if(vertical) return move_point( p, vec2(vertices[p.index].x,newPos) ).y;
+		else return move_point( p, vec2(newPos,vertices[p.index].y) ).x;
 	}
 	else if(p.point_type == SHAPE_POINT){
-		if(vertical) return move_point( p, vec2(shape_points[p.index].x,newPos) );
-		else return move_point( p, vec2(newPos,shape_points[p.index].y) );
+		if(vertical) return move_point( p, vertices[p.index]+vec2(shape_points[p.index].x,newPos) ).y;
+		else return move_point( p, vertices[p.index]+vec2(newPos,shape_points[p.index].y) ).x;
 	}
-	else return false;
+	else return 0.f;
 }
 
 bool BezierCurve::remove_point(CurvePoint p){
