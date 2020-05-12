@@ -263,7 +263,6 @@ void TestUI::changeUIOnParamChange(int paramIdx){
 				//curve.move_point( {i,SHAPE_POINT,false}, (float) (mDelegate->GetParam(kInitShapePoint+2*i+1)->Value()), true);
 				
 			}
-			//updateParametersStartingFrom(1);
 			curve_updated=true;
 		}
 		else if( target_num_points < current_num_points ){
@@ -285,13 +284,8 @@ void TestUI::updateParametersStartingFrom(int paramIdx){
 		const glm::vec2 pos = curve.get_position({i,VERTEX,false});
 		setParameterFromUI(kInitCurvePoint+2*i,pos.x);
 		setParameterFromUI(kInitCurvePoint+2*i+1,pos.y);
-		//const glm::vec2 shape_pos = curve.get_position({i,SHAPE_POINT,false});
-		//setParameterFromUI(kInitShapePoint+2*i,shape_pos.x);
-		//setParameterFromUI(kInitShapePoint+2*i+1,shape_pos.y);
+		const glm::vec2 shape_pos = curve.get_position({i,SHAPE_POINT,false});
+		setParameterFromUI(kInitShapePoint+2*i,shape_pos.x);
+		setParameterFromUI(kInitShapePoint+2*i+1,shape_pos.y);
 	}
-	//int last_point = curve.get_num_vertices()-1;
-	//const glm::vec2 shape_pos = curve.get_position({last_point,SHAPE_POINT,false});
-	//setParameterFromUI(kInitShapePoint+2*last_point,shape_pos.x);
-	//setParameterFromUI(kInitShapePoint+2*last_point+1,shape_pos.y);
-	
 }
