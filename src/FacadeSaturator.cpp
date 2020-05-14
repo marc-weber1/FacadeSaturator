@@ -9,8 +9,9 @@ const char* PARAM_NAMES[] = { "CurvePoint1-X","CurvePoint1-Y","CurvePoint2-X","C
 
 
 FacadeSaturator::FacadeSaturator(const InstanceInfo& info)
-: Plugin(info, MakeConfig(kNumParams, kNumPrograms))
+: Plugin(info, MakeConfig(kNumParams, kNumPrograms)), curve(this, kInitCurvePoint, kInitShapePoint, kNumPointsEnabled)
 {
+	
 	for(int i=0;i<kNumPoints;i++){
 		GetParam(kInitCurvePoint+2*i)->InitDouble(PARAM_NAMES[kInitCurvePoint+2*i], 0., -1., 1., 0.001, "");
 		GetParam(kInitCurvePoint+2*i+1)->InitDouble(PARAM_NAMES[kInitCurvePoint+2*i+1], 0., -1., 1., 0.001, "");
@@ -19,10 +20,12 @@ FacadeSaturator::FacadeSaturator(const InstanceInfo& info)
 	}
 	GetParam(kNumPointsEnabled)->InitInt(PARAM_NAMES[kNumPointsEnabled], 2, 2, kNumPoints);
 	
-	GetParam(kInitCurvePoint)->Set(-1.);
+	GetParam(kInitCurvePoint+0)->Set(-1.);
 	GetParam(kInitCurvePoint+1)->Set(-1.);
 	GetParam(kInitCurvePoint+2)->Set(1.);
 	GetParam(kInitCurvePoint+3)->Set(1.);
+	
+	curve.update_params_from_host();
 }
 
 #if IPLUG_DSP
@@ -66,7 +69,7 @@ void* FacadeSaturator::OpenWindow(void* pParent){
 	void* ret_ptr = nullptr;
 	
 	if(!mWindow){
-		mUI = std::unique_ptr<TestUI>(new TestUI((IEditorDelegate*) this,kNumPoints,kInitCurvePoint,kInitShapePoint,kNumPointsEnabled,oscilloscopeBuffer,NOutChansConnected()));
+		mUI = std::unique_ptr<TestUI>(new TestUI((IEditorDelegate*) this,&curve,oscilloscopeBuffer,NOutChansConnected()>2 ? 2 : NOutChansConnected() ));
 		mWindow = std::unique_ptr<GL3PluginWindow>(new GL3PluginWindow((HWND) pParent,PLUG_WIDTH,PLUG_HEIGHT,PLUG_FPS,1.f, //Fix the HWND when porting
 		{4,1,-1,false,false,false,false,false,false},
 		(GL3PluginUI*) mUI.get())); 
@@ -77,14 +80,15 @@ void* FacadeSaturator::OpenWindow(void* pParent){
 	
 	if(mWindow) ret_ptr = mWindow->OpenWindow(pParent);
 	
-	mUI->changeUIOnParamChange( kNumPointsEnabled );
+	/*mUI->changeUIOnParamChange( kNumPointsEnabled );
 	int points_enabled = GetParam(kNumPointsEnabled)->Int();
 	for(int i=0;i<points_enabled;i++){
 		mUI->changeUIOnParamChange(kInitCurvePoint+2*i);
 		mUI->changeUIOnParamChange(kInitCurvePoint+1+2*i);
 		mUI->changeUIOnParamChange(kInitShapePoint+2*i);
 		mUI->changeUIOnParamChange(kInitShapePoint+1+2*i);
-	}
+	}*/
+	curve.update_params_from_host();
 	
 	return ret_ptr;
 }
@@ -98,9 +102,7 @@ void FacadeSaturator::CloseWindow(){
 }
 
 void FacadeSaturator::OnParamChangeUI(int paramIdx, EParamSource source){
-	if(mUI != nullptr){
-		mUI->changeUIOnParamChange( paramIdx );
-	}
+	curve.update_param_from_host(paramIdx);
 }
 
 #endif

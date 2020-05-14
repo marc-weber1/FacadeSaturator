@@ -14,14 +14,10 @@
 //openGL drawing
 
 bool TestUI::initGLContext(){
-	// DEBUG
-	//std::ofstream debug_file;
-	//debug_file.open("C:/Users/facade/Documents/VSTs/facade-saturator-log.txt");
 	//for(int i=0;i<2*OSCILLOSCOPE_BUFFER_SIZE;i++){
 	//	debug_file << oscilloscope_x_coords[i];
 	//	debug_file << " " << std::endl;
 	//}
-	//debug_file.close();
 	
 	
 	//Compile Shader
@@ -76,7 +72,7 @@ bool TestUI::initGLContext(){
 	
 	//Where are the data chunks in the buffer?
 	glVertexAttribPointer( //position
-		0,2,GL_FLOAT,GL_FALSE,curve.get_stride(),(void*)0
+		0,2,GL_FLOAT,GL_FALSE,curve->get_stride(),(void*)0
 	);
 	glEnableVertexAttribArray(0);
 	
@@ -96,7 +92,7 @@ void TestUI::drawFrame(PuglView* view_t){
 	// Refresh the hi-res curve
 	if( curve_updated ){
 		hires_curve.clear();
-		curve.get_curve_buffer(hires_curve);
+		curve->get_curve_buffer(hires_curve);
 		curve_updated = false;
 	}
 	
@@ -132,7 +128,7 @@ void TestUI::drawFrame(PuglView* view_t){
 	
 	// Buffer shape points
 	std::vector<glm::vec2> shape_points; //Could reduce the amount of calls for this
-	curve.get_shape_point_buffer(shape_points);
+	curve->get_shape_point_buffer(shape_points);
 	glBufferData(GL_ARRAY_BUFFER,sizeof(glm::vec2)*shape_points.size(),shape_points.data(),GL_STATIC_DRAW);
 	
 	// RENDER THE TANGEANT LINES
@@ -145,10 +141,10 @@ void TestUI::drawFrame(PuglView* view_t){
 	glDrawArrays(GL_POINTS,0,shape_points.size());
 	
 	// Buffer vertices
-	glBufferData(GL_ARRAY_BUFFER,curve.get_vertex_buffer_size(),curve.get_vertex_ptr(),GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER,curve->get_vertex_buffer_size(),curve->get_vertex_ptr(),GL_STATIC_DRAW);
 	
 	// RENDER THE POINT CIRCLES
-	glDrawArrays(GL_POINTS,0,curve.get_num_vertices());
+	glDrawArrays(GL_POINTS,0,curve->get_num_vertices());
 	
 	// Buffer the hi-res curve
 	glBufferData(GL_ARRAY_BUFFER,(GLsizei) sizeof(glm::vec2)*hires_curve.size(),hires_curve.data(),GL_STATIC_DRAW);
@@ -165,31 +161,19 @@ void TestUI::drawFrame(PuglView* view_t){
 
 void TestUI::mouseDown(uint32_t button,double x,double y){
 	if(button == LEFT_MOUSE_BTN){
-		CurvePoint index_at_point = curve.check_point(glm::vec2(x,y));
+		CurvePoint index_at_point = curve->check_point(glm::vec2(x,y));
 		
 		if(index_at_point.exists()) selected_point = index_at_point;
 	}
 	else if(button == RIGHT_MOUSE_BTN){
-		CurvePoint index_at_point = curve.check_point(glm::vec2(x,y));
+		CurvePoint index_at_point = curve->check_point(glm::vec2(x,y));
 		
 		if(!index_at_point.exists()){ //Add point
-			selected_point = curve.add_point(glm::vec2(x,y));
-			
-			setParameterFromUI(kNumPointsEnabled,(double) curve.get_num_vertices());
-			//Also update the point values
-			if(selected_point.exists()){
-				updateParametersStartingFrom(selected_point.index);
-			}
+			selected_point = curve->add_point_from_UI(glm::vec2(x,y));
 		}
 		else if(index_at_point.point_type == VERTEX){ //Remove point
 			selected_point=NULL_CURVE_POINT;
-			const int index_to_update = index_at_point.index;
-			const bool point_removed = curve.remove_point(index_at_point);
-			
-			if(point_removed){
-				setParameterFromUI(kNumPointsEnabled,(double) curve.get_num_vertices());
-				updateParametersStartingFrom(index_to_update);
-			}
+			curve->remove_point_from_UI(index_at_point);
 		}
 		else if(index_at_point.point_type == SHAPE_POINT){
 			
@@ -208,27 +192,15 @@ void TestUI::mouseUp(uint32_t button,double x,double y){
 void TestUI::mouseMove(double x, double y){
 	if( mouse_down[LEFT_MOUSE_BTN] || mouse_down[RIGHT_MOUSE_BTN] ){
 		if(selected_point.exists()){
-			glm::vec2 moved_to = curve.move_point(selected_point,glm::vec2(x,y));
+			curve->move_point_from_UI(selected_point,glm::vec2(x,y));
 			curve_updated = true;
-			
-			
-			int paramNumber = 0;
-			if(selected_point.point_type == VERTEX){
-				paramNumber = kInitCurvePoint;
-			}
-			else if(selected_point.point_type == SHAPE_POINT){
-				paramNumber = kInitShapePoint;
-			}
-			paramNumber += 2*selected_point.index;
-			setParameterFromUI(paramNumber,moved_to.x);
-			setParameterFromUI(paramNumber+1,moved_to.y);
 		}
 	}
 }
 
 
 
-// Parameter Manipulation
+/*// Parameter Manipulation
 
 //UI -> Plugin
 void TestUI::setParameterFromUI(int paramIdx, double val){
@@ -259,9 +231,6 @@ void TestUI::changeUIOnParamChange(int paramIdx){
 			for(int i=current_num_points+1;i<=target_num_points;i++){
 				curve.add_point(glm::vec2( mDelegate->GetParam(kInitCurvePoint+2*i)->Value(), mDelegate->GetParam(kInitCurvePoint+1+2*i)->Value() ));
 				
-				//curve.move_point( {i,SHAPE_POINT,false}, (float) (mDelegate->GetParam(kInitShapePoint+2*i)->Value()), false);
-				//curve.move_point( {i,SHAPE_POINT,false}, (float) (mDelegate->GetParam(kInitShapePoint+2*i+1)->Value()), true);
-				
 			}
 			curve_updated=true;
 		}
@@ -280,7 +249,7 @@ void TestUI::changeUIOnParamChange(int paramIdx){
 }
 
 void TestUI::updateParametersStartingFrom(int paramIdx){
-	for(int i=kInitCurvePoint+paramIdx; i<curve.get_num_vertices(); i++){
+	for(int i=paramIdx; i<curve.get_num_vertices(); i++){
 		const glm::vec2 pos = curve.get_position({i,VERTEX,false});
 		setParameterFromUI(kInitCurvePoint+2*i,pos.x);
 		setParameterFromUI(kInitCurvePoint+2*i+1,pos.y);
@@ -288,4 +257,4 @@ void TestUI::updateParametersStartingFrom(int paramIdx){
 		setParameterFromUI(kInitShapePoint+2*i,shape_pos.x);
 		setParameterFromUI(kInitShapePoint+2*i+1,shape_pos.y);
 	}
-}
+}*/

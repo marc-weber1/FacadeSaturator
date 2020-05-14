@@ -4,6 +4,7 @@
 
 #include "GL3PluginWindow.h"
 #include "TestUI.h"
+#include "IParamBezier.h"
 #include "ringbuf.h"
 
 const int kNumPrograms = 1;
@@ -44,6 +45,7 @@ private:
 	int mLastHeight = 0;
 	float mLastScale = 0.f;
 	bool mClosing = false;
+	IParamBezier curve;
 	WDL_TypedRingBuf<float> oscilloscopeBuffer[2];
 	
 };

@@ -5,7 +5,7 @@
 #include <vector>
 #include "IPlugEditorDelegate.h"
 #include "IPlugParameter.h"
-#include "BezierCurve.h"
+#include "IParamBezier.h"
 #include "ringbuf.h"
 #include "memtools.h"
 
@@ -16,9 +16,9 @@
 class TestUI : public GL3PluginUI{
 public:
 
-	TestUI(iplug::IEditorDelegate* mDelegate_t, int kNumCurvePoints_t, int kInitCurvePoint_t, int kInitShapePoint_t, int kNumPointsEnabled_t, WDL_TypedRingBuf<float>* oscilloscopeBuffer_t, int numOscBuffers_t):
-		  mDelegate(mDelegate_t), kNumCurvePoints(kNumCurvePoints_t), kInitCurvePoint(kInitCurvePoint_t), kInitShapePoint(kInitShapePoint_t), kNumPointsEnabled(kNumPointsEnabled_t),
-		  oscilloscopeBuffer(oscilloscopeBuffer_t), curve(kNumCurvePoints), numOscBuffers(numOscBuffers_t) {
+	TestUI(iplug::IEditorDelegate* mDelegate_t, IParamBezier* curve_t, WDL_TypedRingBuf<float>* oscilloscopeBuffer_t, int numOscBuffers_t):
+		  mDelegate(mDelegate_t), curve(curve_t),
+		  oscilloscopeBuffer(oscilloscopeBuffer_t), numOscBuffers(numOscBuffers_t) {
 		oscilloscopeBuffer[0].SetSize(OSCILLOSCOPE_BUFFER_SIZE);
 		oscilloscopeBuffer[0].Fill(0.f);
 		oscilloscopeBuffer[1].SetSize(OSCILLOSCOPE_BUFFER_SIZE);
@@ -26,7 +26,7 @@ public:
 		generate_duplicate_ramp(oscilloscope_x_coords,OSCILLOSCOPE_BUFFER_SIZE);
 		
 		//DEBUG
-		debug_file.open("C:/Users/facade/Documents/VSTs/facade-saturator-log.txt");
+		//debug_file.open("C:/Users/facade/Documents/VSTs/facade-saturator-log.txt");
 	}
 	
 	//vv These functions will be called with the correct context selected
@@ -40,9 +40,9 @@ public:
 	void mouseMove(double x, double y) override;
 	
 	// Parameters
-	void setParameterFromUI(int paramIdx, double val);
-	void changeUIOnParamChange(int paramIdx);
-	void updateParametersStartingFrom(int paramIdx);
+	//void setParameterFromUI(int paramIdx, double val);
+	//void changeUIOnParamChange(int paramIdx);
+	//void updateParametersStartingFrom(int paramIdx);
 	
 private:
 	std::ofstream debug_file; //for debug messages
@@ -59,14 +59,13 @@ private:
 	
 
 	iplug::IEditorDelegate* mDelegate;
-	int kNumCurvePoints, kInitCurvePoint, kInitShapePoint, kNumPointsEnabled;
 	
 	const static int OSCILLOSCOPE_BUFFER_SIZE = 4096;
 	int numOscBuffers;
 	WDL_TypedRingBuf<float>* oscilloscopeBuffer;
 	float oscilloscope_x_coords[OSCILLOSCOPE_BUFFER_SIZE*2];
 
-	BezierCurve curve;
+	IParamBezier* curve;
 	std::vector<glm::vec2> hires_curve; //This should only be updated on a frame where the curve has been updated
 	bool curve_updated;
 	

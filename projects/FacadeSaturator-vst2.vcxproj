@@ -285,7 +285,7 @@
   <ClCompile Include="..\src\FacadeSaturator.cpp" />
 	<ClCompile Include="..\src\GL3PluginWindow.cpp" />
 	<ClCompile Include="..\src\TestUI.cpp" />
-	<ClCompile Include="..\src\BezierCurve.cpp" />
+	<ClCompile Include="..\src\IParamBezier.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resources\main.rc" />
