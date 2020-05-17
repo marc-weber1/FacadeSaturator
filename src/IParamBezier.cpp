@@ -1,6 +1,11 @@
 #include "IParamBezier.h"
 
 #include <cassert>
+#include <cmath>
+
+//DEBUG
+#include <iostream>
+#include <fstream>
 
 
 using namespace glm;
@@ -40,13 +45,14 @@ GLfloat minimum_distance_sq(vec2& line_start,vec2& line_end,vec2& point){
 // DEBUG
 
 void IParamBezier::check_assertions(){
+	
 	//Assertion 1
 	assert(vertices.size() == mDelegate->GetParam(kNumCurvePoints)->Int());
 	assert(shape_points.size() == mDelegate->GetParam(kNumCurvePoints)->Int());
 	
 	//Assertion 2
 	double max_shape_point_x = -1.;
-	for(int i=0; i<vertices.size(); i++){
+	for(int i=1; i<vertices.size()-1; i++){
 		assert((GLfloat)max_shape_point_x <= vertices[i].x);
 		
 		double next_param_x = mDelegate->GetParam(kInitCurvePoint+2*i)->Value();
@@ -78,6 +84,12 @@ void IParamBezier::set_parameter_from_UI(int paramIdx, double val){
 
 void IParamBezier::update_vertices_from_UI(int starting_point){
 	int num_points = mDelegate->GetParam(kNumCurvePoints)->Int();
+	
+	if(starting_point>0){
+		set_parameter_from_UI(kInitShapePoint+2*(starting_point-1),shape_points[starting_point-1].x);
+		set_parameter_from_UI(kInitShapePoint+2*(starting_point-1)+1,shape_points[starting_point-1].y);
+	}
+	
 	for(int i=starting_point; i<num_points; i++){
 		if(i>0 && i<num_points-1) set_parameter_from_UI(kInitCurvePoint+2*i,vertices[i].x);
 		set_parameter_from_UI(kInitCurvePoint+2*i+1,vertices[i].y);
@@ -173,7 +185,7 @@ bool IParamBezier::remove_point_from_UI(CurvePoint p){
 	
 	//Update the params
 	set_parameter_from_UI(kNumCurvePoints,(double) vertices.size());
-	update_vertices_from_UI(vertices.size()-1);
+	update_vertices_from_UI(p.index);
 	if(DEBUG_ASSERTIONS) check_assertions();
 	
 	return true;
@@ -214,13 +226,11 @@ vec2 IParamBezier::move_point_from_UI(CurvePoint p, vec2 destination){
 	}
 	
 	//Clamp your shape points with the other shape points to keep it functional:
-	if(p.index > 0){ //Let the previous clamp you?
-		if( vertices[p.index].x-shape_points[p.index].x < vertices[p.index-1].x+shape_points[p.index-1].x ) shape_points[p.index].x = vertices[p.index].x-(vertices[p.index-1].x+shape_points[p.index-1].x);
-	}
-	if(p.index < vertices.size()-1){ //Clamp the next?
-		if( vertices[p.index+1].x < vertices[p.index].x+shape_points[p.index].x ) shape_points[p.index].x = vertices[p.index+1].x-vertices[p.index].x;
-		if( vertices[p.index+1].x-shape_points[p.index+1].x < vertices[p.index].x+shape_points[p.index].x ) shape_points[p.index+1].x = vertices[p.index+1].x-(vertices[p.index].x+shape_points[p.index].x);
-	}
+	if(p.index<vertices.size()-1) shape_points[p.index].x = clamp(shape_points[p.index].x,0,vertices[p.index+1].x-vertices[p.index].x);
+	if(p.index>0) shape_points[p.index].x = clamp(shape_points[p.index].x,0,vertices[p.index].x-(vertices[p.index-1].x+shape_points[p.index-1].x));
+	
+	//Clamp the next point
+	if(p.index<vertices.size()-1) shape_points[p.index+1].x = clamp(shape_points[p.index+1].x,0,vertices[p.index+1].x-(vertices[p.index].x+shape_points[p.index].x));
 	
 	//Update the params
 	update_vertices_from_UI(p.index);
@@ -341,12 +351,15 @@ void IParamBezier::update_param_from_host(int paramIdx){
 		if(num_points_to_add>0){
 			add_vertices_from_host(num_points_to_add);
 			
-			update_vertex_x_from_host(
+			//For safety oops (when it loads the preset)
+			update_vertex_x_from_host(1);
+			update_shape_point_x_from_host(0);
 		}
 		else if(num_points_to_add<0){
 			remove_vertices_from_host(-1*num_points_to_add);
 			
-			
+			update_vertex_x_from_host(vertices.size()-1);
+			update_shape_point_x_from_host(vertices.size()-1);
 		}*/
 	}
 	else if(kInitCurvePoint <= paramIdx && paramIdx < kInitCurvePoint+2*current_num_vertices){ //Host moved a vertex
@@ -373,7 +386,8 @@ void IParamBezier::update_param_from_host(int paramIdx){
 		}
 	}
 	
-	if(DEBUG_ASSERTIONS) check_assertions();
+	// v Don't check assertions here or loading a preset will call this function several times
+	//if(DEBUG_ASSERTIONS) check_assertions();
 }
 
 void IParamBezier::update_params_from_host(){ //Host is either refreshing or initializing the UI
@@ -394,4 +408,97 @@ void IParamBezier::update_params_from_host(){ //Host is either refreshing or ini
 	}
 	
 	if(DEBUG_ASSERTIONS) check_assertions();
+}
+
+
+
+// Get function values from host - CALLED FROM DSP THREAD - USE CAUTION - OPTIMIZE
+
+void IParamBezier::update_smoothed_vertices(){ //ASSUMES vertex_values_smooth.size() == shape_points_smooth.size()
+	int points_to_add = vertices.size() - vertex_values_smooth.size()/2;
+	if(points_to_add > 0){
+		for(int i=vertices.size()-points_to_add;i<vertices.size();i++){
+			vertex_values_smooth.push_back(iplug::LogParamSmooth<GLfloat>(5.,vertices[i].x));
+			vertex_values_smooth.push_back(iplug::LogParamSmooth<GLfloat>(5.,vertices[i].y));
+			shape_points_smooth.push_back(iplug::LogParamSmooth<GLfloat>(5.,shape_points[i].x));
+			shape_points_smooth.push_back(iplug::LogParamSmooth<GLfloat>(5.,shape_points[i].y));
+		}
+	}
+	else if(points_to_add < 0){
+		for(int i=0;i<-1*points_to_add;i++){
+			vertex_values_smooth.pop_back();
+			vertex_values_smooth.pop_back();
+			shape_points_smooth.pop_back();
+			shape_points_smooth.pop_back();
+		}
+	}
+	
+	/*for(int i=0;i<vertices.size();i++){
+		vertex_values_smooth[2*i].SetValue(vertices[i].x);
+		vertex_values_smooth[2*i+1].SetValue(vertices[i].y);
+		shape_points_smooth[2*i].SetValue(shape_points[i].x);
+		shape_points_smooth[2*i+1].SetValue(shape_points[i].y);
+	}*/
+	
+	//vertices[0].x = -1.f;
+	//vertices[vertices.size()-1].x = 1.f;
+}
+
+GLfloat IParamBezier::bezier_value(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3, GLfloat t){
+	GLfloat t_inv = 1.f-t;
+	GLfloat t_sq = t*t;
+	GLfloat t_inv_sq = t_inv*t_inv;
+	
+	return t_inv_sq*t_inv*p0 + 3.f*t_inv_sq*t*p1 + 3.f*t_inv*t_sq*p2 + t_sq*t*p3;
+}
+
+void IParamBezier::waveshape(float* inputs, float* outputs, int nFrames){
+	update_smoothed_vertices();
+	int num_vertices = vertices.size();
+	
+	for(int i=0;i<nFrames;i++){
+		//Guarantee sample safety
+		if(inputs[i]<=-1.f){
+			outputs[i] = vertices[0].y;
+			continue;
+		}
+		else if(inputs[i]>=1.f){
+			outputs[i] = vertices[num_vertices-1].y;
+			continue;
+		}
+		
+		//Binary search to find the vertices the sample lies between
+		int lower = 0;
+		int higher = num_vertices-1;
+		while(lower<higher){
+			int m = (lower+higher)/2;
+			if(vertices[m].x <= inputs[i]) lower = m+1;
+			else higher = m;
+		}
+		lower -= 1;
+		
+		//assert(lower < num_vertices-1); //DEBUG
+		//assert(lower > -1); //DEBUG
+		
+		vec2 p0 = vec2(vertex_values_smooth[2*lower].Process(vertices[lower].x),vertex_values_smooth[2*lower+1].Process(vertices[lower].y));
+		vec2 p1 = p0 + vec2(shape_points_smooth[2*lower].Process(shape_points[lower].x),shape_points_smooth[2*lower+1].Process(shape_points[lower].y));
+		vec2 p3 = vec2(vertex_values_smooth[2*(lower+1)].Process(vertices[lower+1].x),vertex_values_smooth[2*(lower+1)+1].Process(vertices[lower+1].y));
+		vec2 p2 = p3 - vec2(shape_points_smooth[2*(lower+1)].Process(shape_points[lower+1].x),shape_points_smooth[2*(lower+1)+1].Process(shape_points[lower+1].y));
+		
+		//Binary search bezier t-values until one comes within the min error distance; assumes t and x are ordered
+		GLfloat l = 0.f;
+		GLfloat h = 1.f;
+		GLfloat t = 0.5f;
+		for(int k=0;k<MAX_ITERATIONS_PER_SAMPLE;k++){
+			GLfloat guess = bezier_value(p0.x,p1.x,p2.x,p3.x,t);
+			
+			if( abs(guess - inputs[i]) <= AUDIO_SAMPLE_ERROR_RADIUS ) break;
+			else if( guess < inputs[i] ) l = t;
+			else h = t; //guess > inputs[i]
+			
+			t = (l+h)/2;
+		}
+		
+		outputs[i] = bezier_value(p0.y,p1.y,p2.y,p3.y,t);
+	}
 }

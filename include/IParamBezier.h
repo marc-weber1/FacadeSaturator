@@ -6,7 +6,7 @@
 #include "glad/glad.h"
 
 #include "IPlugEditorDelegate.h"
-#include "IPlugConstants.h"
+#include "Smoothers.h"
 
 enum PointType{
 	VERTEX, SHAPE_POINT
@@ -56,7 +56,7 @@ public:
 	void update_params_from_host();
 	
 	//Get function value from host
-	void waveshape(iplug::sample** inputs, iplug::sample** outputs, int nFrames);
+	void waveshape(float* inputs, float* outputs, int nFrames);
 	
 private:
 	//Alter curve from host (private functions)
@@ -68,6 +68,10 @@ private:
 	//Alter curve from UI (private functions)
 	void set_parameter_from_UI(int paramIdx, double val);
 	void update_vertices_from_UI(int starting_point);
+	
+	//Bezier help functions
+	void update_smoothed_vertices();
+	GLfloat bezier_value(GLfloat,GLfloat,GLfloat,GLfloat,GLfloat);
 	
 	//For debug
 	const bool DEBUG_ASSERTIONS = true;
@@ -82,10 +86,16 @@ private:
 	const unsigned int CURVE_RESOLUTION = 20;
 	const GLfloat BEZIER_Y_SCALE = 2.f;
 	const glm::vec2 DEFAULT_SHAPE_POINT = glm::vec2(0.1f,0.1f/BEZIER_Y_SCALE);
+	const float AUDIO_SAMPLE_ERROR_RADIUS = 0.001f;
+	const int MAX_ITERATIONS_PER_SAMPLE = 10; //Set this to -1 for no limit
 	
-	//Stored values for UI / host DSP
+	//Stored values for UI
 	std::vector<glm::vec2> vertices;
 	std::vector<glm::vec2> shape_points;
+	
+	//Stored values for DSP
+	std::vector<iplug::LogParamSmooth<GLfloat>> vertex_values_smooth; //Fix this to account for sample rate changing? or it will sound like shit
+	std::vector<iplug::LogParamSmooth<GLfloat>> shape_points_smooth;
 	
 	/* PRECONDITIONS:
 	 * -  numCurvePoints >= 2

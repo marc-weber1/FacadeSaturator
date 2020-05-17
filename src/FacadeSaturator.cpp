@@ -20,10 +20,10 @@ FacadeSaturator::FacadeSaturator(const InstanceInfo& info)
 	}
 	GetParam(kNumPointsEnabled)->InitInt(PARAM_NAMES[kNumPointsEnabled], 2, 2, kNumPoints);
 	
-	GetParam(kInitCurvePoint+0)->Set(-1.);
-	GetParam(kInitCurvePoint+1)->Set(-1.);
-	GetParam(kInitCurvePoint+2)->Set(1.);
-	GetParam(kInitCurvePoint+3)->Set(1.);
+	//GetParam(kInitCurvePoint+0)->Set(-1.);
+	//GetParam(kInitCurvePoint+1)->Set(-1.);
+	//GetParam(kInitCurvePoint+2)->Set(1.);
+	//GetParam(kInitCurvePoint+3)->Set(1.);
 	
 	curve.update_params_from_host();
 }
@@ -31,13 +31,10 @@ FacadeSaturator::FacadeSaturator(const InstanceInfo& info)
 #if IPLUG_DSP
 void FacadeSaturator::ProcessBlock(sample** inputs, sample** outputs, int nFrames)
 {
-  const int nChans = NOutChansConnected();
+	const int nChans = NOutChansConnected();
   
-	for (int s = 0; s < nFrames; s++) {
-		for (int c = 0; c < nChans; c++) {
-			outputs[c][s] = inputs[c][s];
-
-		}
+	for (int c = 0; c < nChans; c++) {
+		curve.waveshape(inputs[c], outputs[c], nFrames);
 	}
 	
 	//Copy values to oscilloscope
@@ -102,7 +99,7 @@ void FacadeSaturator::CloseWindow(){
 }
 
 void FacadeSaturator::OnParamChangeUI(int paramIdx, EParamSource source){
-	curve.update_param_from_host(paramIdx);
+	if(source == kDelegate) curve.update_param_from_host(paramIdx);
 }
 
 #endif

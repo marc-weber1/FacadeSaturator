@@ -14,10 +14,6 @@
 //openGL drawing
 
 bool TestUI::initGLContext(){
-	//for(int i=0;i<2*OSCILLOSCOPE_BUFFER_SIZE;i++){
-	//	debug_file << oscilloscope_x_coords[i];
-	//	debug_file << " " << std::endl;
-	//}
 	
 	
 	//Compile Shader
