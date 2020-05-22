@@ -40,13 +40,13 @@ bool TestUI::initGLContext(){
 	
 	// SET IMAGE UNIFORMS
 	glUseProgram(image_shader);
+	GLint image_brightness_uniform = glGetUniformLocation(image_shader,"image_brightness");
+	glUniform1f(image_brightness_uniform,image_brightness);
 	//Load the background texture
 	glGenTextures(1, &bg_texture_uniform);
 	glBindTexture(GL_TEXTURE_2D, bg_texture_uniform);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	stbi_set_flip_vertically_on_load(true);
 	int bg_width, bg_height, bg_num_channels;
 	unsigned char* background_image_data = stbi_load_from_memory(DATA_RESOURCES_BG_PNG, sizeof(DATA_RESOURCES_BG_PNG), &bg_width, &bg_height, &bg_num_channels, 0);
@@ -55,7 +55,6 @@ bool TestUI::initGLContext(){
 		return false;
 	}
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bg_width, bg_height, 0, GL_RGB, GL_UNSIGNED_BYTE, background_image_data);
-	//glGenerateMipmap(GL_TEXTURE_2D);
 	stbi_image_free(background_image_data);
 	
 	
@@ -95,12 +94,12 @@ void TestUI::drawFrame(PuglView* view_t){
 	glClear(GL_COLOR_BUFFER_BIT);
 	
 	// Buffer background triangles
-	//glUseProgram(image_shader);
-	//glBufferData(GL_ARRAY_BUFFER,sizeof(ENTIRE_SCREEN),ENTIRE_SCREEN,GL_STATIC_DRAW);
+	glUseProgram(image_shader);
+	glBufferData(GL_ARRAY_BUFFER,sizeof(ENTIRE_SCREEN),ENTIRE_SCREEN,GL_STATIC_DRAW);
 	
 	// RENDER BG IMAGE
-	//glBindTexture(GL_TEXTURE_2D, bg_texture_uniform);
-	//glDrawArrays(GL_TRIANGLES,0,sizeof(ENTIRE_SCREEN)/sizeof(glm::vec2));
+	glBindTexture(GL_TEXTURE_2D, bg_texture_uniform);
+	glDrawArrays(GL_TRIANGLES,0,sizeof(ENTIRE_SCREEN)/sizeof(glm::vec2));
 	
 	// Buffer oscilloscope lines (triangles?)
 	float oscilloscope_sound_buffer_L[OSCILLOSCOPE_BUFFER_SIZE];
@@ -193,64 +192,3 @@ void TestUI::mouseMove(double x, double y){
 		}
 	}
 }
-
-
-
-/*// Parameter Manipulation
-
-//UI -> Plugin
-void TestUI::setParameterFromUI(int paramIdx, double val){
-	double min = mDelegate->GetParam(paramIdx)->GetMin();
-	double max = mDelegate->GetParam(paramIdx)->GetMax();
-	
-	mDelegate->BeginInformHostOfParamChangeFromUI(paramIdx);
-	mDelegate->SendParameterValueFromUI(paramIdx,(val-min)/(max-min));
-	mDelegate->EndInformHostOfParamChangeFromUI(paramIdx);
-}
-
-// Plugin -> UI
-void TestUI::changeUIOnParamChange(int paramIdx){
-	if(kInitCurvePoint <= paramIdx && paramIdx < kInitCurvePoint+2*kNumCurvePoints){
-		curve.move_point( {(paramIdx-kInitCurvePoint)/2,VERTEX,false}, (float) (mDelegate->GetParam(paramIdx)->Value()), (paramIdx-kInitCurvePoint)%2 == 1 );
-		curve_updated=true;
-	}
-	else if(kInitShapePoint <= paramIdx && paramIdx < kInitShapePoint+2*kNumCurvePoints){
-		curve.move_point( {(paramIdx-kInitShapePoint)/2,SHAPE_POINT,false}, (float) (mDelegate->GetParam(paramIdx)->Value()), (paramIdx-kInitShapePoint)%2 == 1 );
-		
-		curve_updated=true;
-	}
-	else if(paramIdx == kNumPointsEnabled){
-		int target_num_points = mDelegate->GetParam(paramIdx)->Int();
-		int current_num_points = (int) curve.get_num_vertices();
-		
-		if( current_num_points < target_num_points ){
-			for(int i=current_num_points+1;i<=target_num_points;i++){
-				curve.add_point(glm::vec2( mDelegate->GetParam(kInitCurvePoint+2*i)->Value(), mDelegate->GetParam(kInitCurvePoint+1+2*i)->Value() ));
-				
-			}
-			curve_updated=true;
-		}
-		else if( target_num_points < current_num_points ){
-			for(int i=current_num_points-2; i>target_num_points-2; i--){ //Can't remove the last point, keep removing second last
-				curve.remove_point( {current_num_points-2,VERTEX,false} );
-			}
-			//Update the last shape point
-			int last_point = curve.get_num_vertices()-1;
-			const glm::vec2 shape_pos = curve.get_position({last_point,SHAPE_POINT,false});
-			setParameterFromUI(kInitShapePoint+2*last_point,shape_pos.x);
-			setParameterFromUI(kInitShapePoint+2*last_point+1,shape_pos.y);
-			curve_updated=true;
-		}
-	}
-}
-
-void TestUI::updateParametersStartingFrom(int paramIdx){
-	for(int i=paramIdx; i<curve.get_num_vertices(); i++){
-		const glm::vec2 pos = curve.get_position({i,VERTEX,false});
-		setParameterFromUI(kInitCurvePoint+2*i,pos.x);
-		setParameterFromUI(kInitCurvePoint+2*i+1,pos.y);
-		const glm::vec2 shape_pos = curve.get_position({i,SHAPE_POINT,false});
-		setParameterFromUI(kInitShapePoint+2*i,shape_pos.x);
-		setParameterFromUI(kInitShapePoint+2*i+1,shape_pos.y);
-	}
-}*/

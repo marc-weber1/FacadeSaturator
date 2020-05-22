@@ -3,6 +3,9 @@
 #include <cassert>
 #include <cmath>
 
+#include <immintrin.h>
+#include "memtools.h"
+
 //DEBUG
 #include <iostream>
 #include <fstream>
@@ -99,6 +102,8 @@ void IParamBezier::update_vertices_from_UI(int starting_point){
 }
 
 CurvePoint IParamBezier::add_point_from_UI(glm::vec2 location){
+	if( mDelegate->GetParam(kNumCurvePoints)->Int() >= (int) mDelegate->GetParam(kNumCurvePoints)->GetMax() ) return NULL_CURVE_POINT;
+	
 	clampOnGrid(location);
 	
 	//Where to put the point?
@@ -134,6 +139,9 @@ CurvePoint IParamBezier::add_point_from_UI(glm::vec2 location){
 	set_parameter_from_UI(kNumCurvePoints,(double) vertices.size());
 	update_vertices_from_UI(point_index);
 	if(DEBUG_ASSERTIONS) check_assertions();
+	
+	curve_updated_ui = true;
+	curve_updated_dsp = true;
 	
 	return p;
 }
@@ -188,6 +196,9 @@ bool IParamBezier::remove_point_from_UI(CurvePoint p){
 	update_vertices_from_UI(p.index);
 	if(DEBUG_ASSERTIONS) check_assertions();
 	
+	curve_updated_ui = true;
+	curve_updated_dsp = true;
+	
 	return true;
 }
 
@@ -235,6 +246,9 @@ vec2 IParamBezier::move_point_from_UI(CurvePoint p, vec2 destination){
 	//Update the params
 	update_vertices_from_UI(p.index);
 	if(DEBUG_ASSERTIONS) check_assertions();
+	
+	curve_updated_ui = true;
+	curve_updated_dsp = true;
 	
 	if(p.point_type==VERTEX){
 		return vertices[p.index];
@@ -388,6 +402,9 @@ void IParamBezier::update_param_from_host(int paramIdx){
 	
 	// v Don't check assertions here or loading a preset will call this function several times
 	//if(DEBUG_ASSERTIONS) check_assertions();
+	
+	curve_updated_ui = true;
+	curve_updated_dsp = true;
 }
 
 void IParamBezier::update_params_from_host(){ //Host is either refreshing or initializing the UI
@@ -414,91 +431,69 @@ void IParamBezier::update_params_from_host(){ //Host is either refreshing or ini
 
 // Get function values from host - CALLED FROM DSP THREAD - USE CAUTION - OPTIMIZE
 
-void IParamBezier::update_smoothed_vertices(){ //ASSUMES vertex_values_smooth.size() == shape_points_smooth.size()
-	int points_to_add = vertices.size() - vertex_values_smooth.size()/2;
-	if(points_to_add > 0){
-		for(int i=vertices.size()-points_to_add;i<vertices.size();i++){
-			vertex_values_smooth.push_back(iplug::LogParamSmooth<GLfloat>(5.,vertices[i].x));
-			vertex_values_smooth.push_back(iplug::LogParamSmooth<GLfloat>(5.,vertices[i].y));
-			shape_points_smooth.push_back(iplug::LogParamSmooth<GLfloat>(5.,shape_points[i].x));
-			shape_points_smooth.push_back(iplug::LogParamSmooth<GLfloat>(5.,shape_points[i].y));
-		}
-	}
-	else if(points_to_add < 0){
-		for(int i=0;i<-1*points_to_add;i++){
-			vertex_values_smooth.pop_back();
-			vertex_values_smooth.pop_back();
-			shape_points_smooth.pop_back();
-			shape_points_smooth.pop_back();
-		}
-	}
-	
-	/*for(int i=0;i<vertices.size();i++){
-		vertex_values_smooth[2*i].SetValue(vertices[i].x);
-		vertex_values_smooth[2*i+1].SetValue(vertices[i].y);
-		shape_points_smooth[2*i].SetValue(shape_points[i].x);
-		shape_points_smooth[2*i+1].SetValue(shape_points[i].y);
-	}*/
-	
-	//vertices[0].x = -1.f;
-	//vertices[vertices.size()-1].x = 1.f;
-}
-
-GLfloat IParamBezier::bezier_value(GLfloat p0, GLfloat p1, GLfloat p2, GLfloat p3, GLfloat t){
-	GLfloat t_inv = 1.f-t;
-	GLfloat t_sq = t*t;
-	GLfloat t_inv_sq = t_inv*t_inv;
-	
-	return t_inv_sq*t_inv*p0 + 3.f*t_inv_sq*t*p1 + 3.f*t_inv*t_sq*p2 + t_sq*t*p3;
-}
-
 void IParamBezier::waveshape(float* inputs, float* outputs, int nFrames){
-	update_smoothed_vertices();
-	int num_vertices = vertices.size();
+	//__m128 f;
+	
+	if(curve_updated_dsp){
+		
+		bezier_lut_target_length = vertices.size()-1; //This is a race condition oops, what if vertices changes size
+		
+		for(int i=0;i<bezier_lut_target_length;i++){
+			if(i==0) bezier_lut_target[i].x[0] =  -1.f;
+			else bezier_lut_target[i].x[0] = vertices[i].x;
+			if(i==bezier_lut_target_length-1) bezier_lut_target[i].x[3] = 1.f;
+			else bezier_lut_target[i].x[3] = vertices[i+1].x;
+			
+			bezier_lut_target[i].y[0] = vertices[i].y;
+			bezier_lut_target[i].y[3] = vertices[i+1].y;
+			
+			//Calculate some intermediate values with the shape points
+			__m128 bezier_points_x = _mm_set_ps(bezier_lut_target[i].x[3],bezier_lut_target[i].x[3]-shape_points[i+1].x,bezier_lut_target[i].x[0]+shape_points[i].x,bezier_lut_target[i].x[0]); // [P3,P2,P1,P0]
+			bezier_lut_target[i].x[1] = bezier_value(bezier_points_x,0.333333f);
+			bezier_lut_target[i].x[2] = bezier_value(bezier_points_x,0.666667f);
+			
+			//And agen wida
+			__m128 bezier_points_y = _mm_set_ps(bezier_lut_target[i].y[3],bezier_lut_target[i].y[3]-BEZIER_Y_SCALE*shape_points[i+1].y,bezier_lut_target[i].y[0]+BEZIER_Y_SCALE*shape_points[i].y,bezier_lut_target[i].y[0]);
+			bezier_lut_target[i].y[1] = bezier_value(bezier_points_y,0.333333f);
+			bezier_lut_target[i].y[2] = bezier_value(bezier_points_y,0.666667f);
+		}
+		
+		curve_updated_dsp = false;
+	}
 	
 	for(int i=0;i<nFrames;i++){
-		//Guarantee sample safety
+		
+		//Guarantee sample safety (fix this so it still interpolates)
 		if(inputs[i]<=-1.f){
-			outputs[i] = vertices[0].y;
+			outputs[i] = bezier_lut_target[0].y[0];
 			continue;
 		}
 		else if(inputs[i]>=1.f){
-			outputs[i] = vertices[num_vertices-1].y;
+			outputs[i] = bezier_lut_target[bezier_lut_current_length-1].y[3];
 			continue;
 		}
 		
 		//Binary search to find the vertices the sample lies between
 		int lower = 0;
-		int higher = num_vertices-1;
+		int higher = bezier_lut_target_length;
 		while(lower<higher){
 			int m = (lower+higher)/2;
-			if(vertices[m].x <= inputs[i]) lower = m+1;
+			if(bezier_lut_target[m].x[0] < inputs[i]) lower = m+1;
 			else higher = m;
 		}
+		// At this point lower should count the number of elements less than inputs[i], so
 		lower -= 1;
 		
-		//assert(lower < num_vertices-1); //DEBUG
-		//assert(lower > -1); //DEBUG
+		// DEBUG
+		if(DEBUG_ASSERTIONS) assert(lower < bezier_lut_target_length);
+		if(DEBUG_ASSERTIONS) assert(lower > -1);
 		
-		vec2 p0 = vec2(vertex_values_smooth[2*lower].Process(vertices[lower].x),vertex_values_smooth[2*lower+1].Process(vertices[lower].y));
-		vec2 p1 = p0 + vec2(shape_points_smooth[2*lower].Process(shape_points[lower].x),shape_points_smooth[2*lower+1].Process(shape_points[lower].y));
-		vec2 p3 = vec2(vertex_values_smooth[2*(lower+1)].Process(vertices[lower+1].x),vertex_values_smooth[2*(lower+1)+1].Process(vertices[lower+1].y));
-		vec2 p2 = p3 - vec2(shape_points_smooth[2*(lower+1)].Process(shape_points[lower+1].x),shape_points_smooth[2*(lower+1)+1].Process(shape_points[lower+1].y));
 		
-		//Binary search bezier t-values until one comes within the min error distance; assumes t and x are ordered
-		GLfloat l = 0.f;
-		GLfloat h = 1.f;
-		GLfloat t = 0.5f;
-		for(int k=0;k<MAX_ITERATIONS_PER_SAMPLE;k++){
-			GLfloat guess = bezier_value(p0.x,p1.x,p2.x,p3.x,t);
-			
-			if( abs(guess - inputs[i]) <= AUDIO_SAMPLE_ERROR_RADIUS ) break;
-			else if( guess < inputs[i] ) l = t;
-			else h = t; //guess > inputs[i]
-			
-			t = (l+h)/2;
-		}
+		__m128 x = _mm_load_ps(bezier_lut_target[lower].x);
+		__m128 y = _mm_load_ps(bezier_lut_target[lower].y);
 		
-		outputs[i] = bezier_value(p0.y,p1.y,p2.y,p3.y,t);
+		float target_val = cubic_interpolate(x,y,inputs[i]);
+		
+		outputs[i] = target_val; //Fix this maybe
 	}
 }

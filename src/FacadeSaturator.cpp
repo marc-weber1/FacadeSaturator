@@ -12,18 +12,22 @@ FacadeSaturator::FacadeSaturator(const InstanceInfo& info)
 : Plugin(info, MakeConfig(kNumParams, kNumPrograms)), curve(this, kInitCurvePoint, kInitShapePoint, kNumPointsEnabled)
 {
 	
-	for(int i=0;i<kNumPoints;i++){
+	GetParam(kInitCurvePoint+0)->InitDouble(PARAM_NAMES[kInitCurvePoint+0], -1., -1., 1., 0.001, "");
+	GetParam(kInitCurvePoint+1)->InitDouble(PARAM_NAMES[kInitCurvePoint+1], -1., -1., 1., 0.001, "");
+	GetParam(kInitCurvePoint+2)->InitDouble(PARAM_NAMES[kInitCurvePoint+0], 1., -1., 1., 0.001, "");
+	GetParam(kInitCurvePoint+3)->InitDouble(PARAM_NAMES[kInitCurvePoint+1], 1., -1., 1., 0.001, "");
+	GetParam(kInitShapePoint+0)->InitDouble(PARAM_NAMES[kInitShapePoint+0], 0.1, 0., 2., 0.001, "");
+	GetParam(kInitShapePoint+1)->InitDouble(PARAM_NAMES[kInitShapePoint+1], 0.05, -2., 2., 0.001, "");
+	GetParam(kInitShapePoint+2)->InitDouble(PARAM_NAMES[kInitShapePoint+0], 0.1, 0., 2., 0.001, "");
+	GetParam(kInitShapePoint+3)->InitDouble(PARAM_NAMES[kInitShapePoint+1], 0.05, -2., 2., 0.001, "");
+	
+	for(int i=2;i<kNumPoints-1;i++){
 		GetParam(kInitCurvePoint+2*i)->InitDouble(PARAM_NAMES[kInitCurvePoint+2*i], 0., -1., 1., 0.001, "");
 		GetParam(kInitCurvePoint+2*i+1)->InitDouble(PARAM_NAMES[kInitCurvePoint+2*i+1], 0., -1., 1., 0.001, "");
 		GetParam(kInitShapePoint+2*i)->InitDouble(PARAM_NAMES[kInitShapePoint+2*i], 0.1, 0., 2., 0.001, "");
 		GetParam(kInitShapePoint+2*i+1)->InitDouble(PARAM_NAMES[kInitShapePoint+2*i+1], 0.05, -2., 2., 0.001, "");
 	}
 	GetParam(kNumPointsEnabled)->InitInt(PARAM_NAMES[kNumPointsEnabled], 2, 2, kNumPoints);
-	
-	//GetParam(kInitCurvePoint+0)->Set(-1.);
-	//GetParam(kInitCurvePoint+1)->Set(-1.);
-	//GetParam(kInitCurvePoint+2)->Set(1.);
-	//GetParam(kInitCurvePoint+3)->Set(1.);
 	
 	curve.update_params_from_host();
 }
@@ -35,11 +39,10 @@ void FacadeSaturator::ProcessBlock(sample** inputs, sample** outputs, int nFrame
   
 	for (int c = 0; c < nChans; c++) {
 		curve.waveshape(inputs[c], outputs[c], nFrames);
+		//Then maybe clamp values to [-1.f,1.f]
 	}
 	
 	//Copy values to oscilloscope
-	//LEFT CHANNEL ONLY RIGHT NOW; for debug
-	//maybe optimize this so it isnt awful
 	if(mWindow){
 		for(int c=0; c<2 && c<nChans; c++){
 			#ifdef SAMPLE_TYPE_FLOAT
@@ -77,14 +80,6 @@ void* FacadeSaturator::OpenWindow(void* pParent){
 	
 	if(mWindow) ret_ptr = mWindow->OpenWindow(pParent);
 	
-	/*mUI->changeUIOnParamChange( kNumPointsEnabled );
-	int points_enabled = GetParam(kNumPointsEnabled)->Int();
-	for(int i=0;i<points_enabled;i++){
-		mUI->changeUIOnParamChange(kInitCurvePoint+2*i);
-		mUI->changeUIOnParamChange(kInitCurvePoint+1+2*i);
-		mUI->changeUIOnParamChange(kInitShapePoint+2*i);
-		mUI->changeUIOnParamChange(kInitShapePoint+1+2*i);
-	}*/
 	curve.update_params_from_host();
 	
 	return ret_ptr;

@@ -81,8 +81,9 @@ private:
 	const glm::vec3 color_tangeants = {0.f,1.f,0.f};
 	const glm::vec3 color_shape_circles = {0.5f,0.f,1.f};
 	const glm::vec3 color_circles = {1.f,0.f,1.f};
-	const glm::vec3 color_lines = {0.7f,0.7f,0.7f};
+	const glm::vec3 color_lines = {0.85f,0.85f,0.85f};
 	const glm::vec3 color_curve = {0.f,1.f,1.f};
+	const GLfloat image_brightness = 0.7;
 	
 	const GLfloat ENTIRE_SCREEN[12] = { -1.f,1.f, -1.f,-1.f, 1.f,-1.f,
 										-1.f,1.f, 1.f,-1.f,  1.f,1.f };

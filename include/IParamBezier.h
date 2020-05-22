@@ -27,7 +27,7 @@ const CurvePoint NULL_CURVE_POINT = {-1,VERTEX,false};
 
 class IParamBezier{
 public:
-	IParamBezier(iplug::IEditorDelegate* tDelegate, int tInitCurvePoint, int tInitShapePoint, int tNumCurvePoints) :
+	IParamBezier(iplug::IEditorDelegate* tDelegate, int tInitCurvePoint, int tInitShapePoint, int tNumCurvePoints, int tMaxPoints=16) :
 		mDelegate(tDelegate),
 		kInitCurvePoint(tInitCurvePoint), kInitShapePoint(tInitShapePoint), kNumCurvePoints(tNumCurvePoints)
 	{
@@ -49,7 +49,7 @@ public:
 	GLsizei get_num_vertices();
 	GLsizeiptr get_vertex_buffer_size();
 	void get_shape_point_buffer(std::vector<glm::vec2>&);
-	void get_curve_buffer(std::vector<glm::vec2>&);
+	void get_curve_buffer(std::vector<glm::vec2>&); //REPLACE THIS WITH DIRECT MEMORY ACCESSES
 	
 	//Alter curve from host
 	void update_param_from_host(int paramIdx);
@@ -71,7 +71,6 @@ private:
 	
 	//Bezier help functions
 	void update_smoothed_vertices();
-	GLfloat bezier_value(GLfloat,GLfloat,GLfloat,GLfloat,GLfloat);
 	
 	//For debug
 	const bool DEBUG_ASSERTIONS = true;
@@ -82,20 +81,33 @@ private:
 	iplug::IEditorDelegate* mDelegate;
 	const int kInitCurvePoint, kInitShapePoint, kNumCurvePoints;
 	
+	const static int MAX_POINTS=16;
 	const double POINT_CLICK_RADIUS = 0.025;
-	const unsigned int CURVE_RESOLUTION = 20;
+	const unsigned int CURVE_RESOLUTION = 20; //For the UI
 	const GLfloat BEZIER_Y_SCALE = 2.f;
 	const glm::vec2 DEFAULT_SHAPE_POINT = glm::vec2(0.1f,0.1f/BEZIER_Y_SCALE);
 	const float AUDIO_SAMPLE_ERROR_RADIUS = 0.001f;
 	const int MAX_ITERATIONS_PER_SAMPLE = 10; //Set this to -1 for no limit
 	
 	//Stored values for UI
+	bool curve_updated_ui = true;
 	std::vector<glm::vec2> vertices;
 	std::vector<glm::vec2> shape_points;
+	std::vector<glm::vec2> hires_curve;
 	
 	//Stored values for DSP
-	std::vector<iplug::LogParamSmooth<GLfloat>> vertex_values_smooth; //Fix this to account for sample rate changing? or it will sound like shit
-	std::vector<iplug::LogParamSmooth<GLfloat>> shape_points_smooth;
+	typedef struct alignas(16) bezier_segment{ //SSE-optimized
+		float x[4];
+		float y[4];
+	} bezier_segment;
+	bezier_segment bezier_lut_current[MAX_POINTS-1];
+	unsigned int bezier_lut_current_length;
+	bezier_segment bezier_lut_target[MAX_POINTS-1];
+	unsigned int bezier_lut_target_length;
+	//Both of these are buffers of constant-interval points on the curve, in groups of 4 to recover the cubic functions y=h(x)
+	bool curve_updated_dsp = true;
+	//std::vector<iplug::LogParamSmooth<GLfloat>> vertex_values_smooth; //Fix this to account for sample rate changing? or it will sound like shit
+	//std::vector<iplug::LogParamSmooth<GLfloat>> shape_points_smooth;
 	
 	/* PRECONDITIONS:
 	 * -  numCurvePoints >= 2
