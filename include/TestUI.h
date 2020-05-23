@@ -66,9 +66,6 @@ private:
 	float oscilloscope_x_coords[OSCILLOSCOPE_BUFFER_SIZE*2];
 
 	IParamBezier* curve;
-	std::vector<glm::vec2> hires_curve; //This should only be updated on a frame where the curve has been updated
-	bool curve_updated;
-	
 	
 	CurvePoint selected_point = NULL_CURVE_POINT;
 	enum MOUSE_BUTTON{
@@ -83,7 +80,7 @@ private:
 	const glm::vec3 color_circles = {1.f,0.f,1.f};
 	const glm::vec3 color_lines = {0.85f,0.85f,0.85f};
 	const glm::vec3 color_curve = {0.f,1.f,1.f};
-	const GLfloat image_brightness = 0.7;
+	const GLfloat image_brightness = 0.7f;
 	
 	const GLfloat ENTIRE_SCREEN[12] = { -1.f,1.f, -1.f,-1.f, 1.f,-1.f,
 										-1.f,1.f, 1.f,-1.f,  1.f,1.f };

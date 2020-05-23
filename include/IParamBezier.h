@@ -35,6 +35,10 @@ public:
 		vertices.push_back(glm::vec2(1.f,1.f));
 		shape_points.push_back(DEFAULT_SHAPE_POINT);
 		shape_points.push_back(DEFAULT_SHAPE_POINT);
+		
+		//Start from the init state
+		bezier_lut_current_length = 1;
+		bezier_lut_current[0] = { {-1.f,-0.5f,0.5f,1.f}, {-1.f,-0.5f,0.5f,1.f} };
 	}
 	
 	//Alter curve from UI
@@ -47,16 +51,17 @@ public:
 	GLsizei get_stride();
 	void* get_vertex_ptr();
 	GLsizei get_num_vertices();
-	GLsizeiptr get_vertex_buffer_size();
 	void get_shape_point_buffer(std::vector<glm::vec2>&);
-	void get_curve_buffer(std::vector<glm::vec2>&); //REPLACE THIS WITH DIRECT MEMORY ACCESSES
+	void* get_hires_ptr();
+	GLsizei get_num_hires();
+	void update_hires_buffer();
 	
 	//Alter curve from host
 	void update_param_from_host(int paramIdx);
 	void update_params_from_host();
 	
 	//Get function value from host
-	void waveshape(float* inputs, float* outputs, int nFrames);
+	void waveshape(float* inputs, float* outputs, int nFrames, bool numChannels);
 	
 private:
 	//Alter curve from host (private functions)
@@ -105,9 +110,8 @@ private:
 	bezier_segment bezier_lut_target[MAX_POINTS-1];
 	unsigned int bezier_lut_target_length;
 	//Both of these are buffers of constant-interval points on the curve, in groups of 4 to recover the cubic functions y=h(x)
+	int sample_smooth_number = 48; //Update this when sample rate changes?? Set for 48000 rn, should be less than the smallest buffer size
 	bool curve_updated_dsp = true;
-	//std::vector<iplug::LogParamSmooth<GLfloat>> vertex_values_smooth; //Fix this to account for sample rate changing? or it will sound like shit
-	//std::vector<iplug::LogParamSmooth<GLfloat>> shape_points_smooth;
 	
 	/* PRECONDITIONS:
 	 * -  numCurvePoints >= 2

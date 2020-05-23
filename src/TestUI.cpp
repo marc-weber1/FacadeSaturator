@@ -63,7 +63,6 @@ bool TestUI::initGLContext(){
 	glBindVertexArray(vao);
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	curve_updated = true; //To initialize the buffers
 	
 	//Where are the data chunks in the buffer?
 	glVertexAttribPointer( //position
@@ -84,12 +83,6 @@ void TestUI::destroyGLContext(){
 }
 
 void TestUI::drawFrame(PuglView* view_t){
-	// Refresh the hi-res curve
-	if( curve_updated ){
-		hires_curve.clear();
-		curve->get_curve_buffer(hires_curve);
-		curve_updated = false;
-	}
 	
 	glClear(GL_COLOR_BUFFER_BIT);
 	
@@ -136,18 +129,19 @@ void TestUI::drawFrame(PuglView* view_t){
 	glDrawArrays(GL_POINTS,0,shape_points.size());
 	
 	// Buffer vertices
-	glBufferData(GL_ARRAY_BUFFER,curve->get_vertex_buffer_size(),curve->get_vertex_ptr(),GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER,curve->get_stride()*curve->get_num_vertices(),curve->get_vertex_ptr(),GL_STATIC_DRAW);
 	
 	// RENDER THE POINT CIRCLES
 	glDrawArrays(GL_POINTS,0,curve->get_num_vertices());
 	
 	// Buffer the hi-res curve
-	glBufferData(GL_ARRAY_BUFFER,(GLsizei) sizeof(glm::vec2)*hires_curve.size(),hires_curve.data(),GL_STATIC_DRAW);
+	void* hires_ptr = curve->get_hires_ptr();
+	glBufferData(GL_ARRAY_BUFFER,curve->get_stride()*curve->get_num_hires(),hires_ptr,GL_STATIC_DRAW);
 	
 	// RENDER THE CURVE (hires)
 	glUseProgram(single_color_shader);
 	glUniform3fv(line_color_uniform,1,&color_curve.x);
-	glDrawArrays(GL_LINE_STRIP,0,hires_curve.size());
+	glDrawArrays(GL_LINE_STRIP,0,curve->get_num_hires());
 }
 
 
@@ -173,7 +167,6 @@ void TestUI::mouseDown(uint32_t button,double x,double y){
 		else if(index_at_point.point_type == SHAPE_POINT){
 			
 		}
-		curve_updated = true;
 	}
 	
 	mouse_down[button] = true;
@@ -188,7 +181,6 @@ void TestUI::mouseMove(double x, double y){
 	if( mouse_down[LEFT_MOUSE_BTN] || mouse_down[RIGHT_MOUSE_BTN] ){
 		if(selected_point.exists()){
 			curve->move_point_from_UI(selected_point,glm::vec2(x,y));
-			curve_updated = true;
 		}
 	}
 }

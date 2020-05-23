@@ -275,9 +275,9 @@ GLsizei IParamBezier::get_num_vertices(){
 	return (GLsizei) vertices.size();
 }
 
-GLsizeiptr IParamBezier::get_vertex_buffer_size(){
+/*GLsizeiptr IParamBezier::get_vertex_buffer_size(){
 	return get_stride()*get_num_vertices();
-}
+}*/
 
 void IParamBezier::get_shape_point_buffer(std::vector<vec2>& points){
 	const size_t num_vertices = shape_points.size();
@@ -287,7 +287,22 @@ void IParamBezier::get_shape_point_buffer(std::vector<vec2>& points){
 	}
 }
 
-void IParamBezier::get_curve_buffer(std::vector<vec2>& points){ //Not quite optimized
+void* IParamBezier::get_hires_ptr(){
+	if(curve_updated_ui){
+		update_hires_buffer();
+		curve_updated_ui = false;
+	}
+	
+	return hires_curve.data();
+}
+
+GLsizei IParamBezier::get_num_hires(){
+	return (GLsizei) hires_curve.size();
+}
+
+void IParamBezier::update_hires_buffer(){ //Not quite optimized
+	hires_curve.clear();
+
 	const size_t num_edges = vertices.size()-1;
 	
 	for(int i=0;i<num_edges;i++){
@@ -306,11 +321,11 @@ void IParamBezier::get_curve_buffer(std::vector<vec2>& points){ //Not quite opti
 			vec2 l1 = h1+(h2-h1)*t;
 			vec2 l2 = h2+(h3-h2)*t;
 			
-			points.push_back(l1+(l2-l1)*t);
+			hires_curve.push_back(l1+(l2-l1)*t);
 		}
 	}
 	
-	points.push_back(vertices[num_edges]);
+	hires_curve.push_back(vertices[num_edges]);
 }
 
 
@@ -431,7 +446,7 @@ void IParamBezier::update_params_from_host(){ //Host is either refreshing or ini
 
 // Get function values from host - CALLED FROM DSP THREAD - USE CAUTION - OPTIMIZE
 
-void IParamBezier::waveshape(float* inputs, float* outputs, int nFrames){
+void IParamBezier::waveshape(float* inputs, float* outputs, int nFrames, bool lastChannel){
 	//__m128 f;
 	
 	if(curve_updated_dsp){
@@ -457,8 +472,6 @@ void IParamBezier::waveshape(float* inputs, float* outputs, int nFrames){
 			bezier_lut_target[i].y[1] = bezier_value(bezier_points_y,0.333333f);
 			bezier_lut_target[i].y[2] = bezier_value(bezier_points_y,0.666667f);
 		}
-		
-		curve_updated_dsp = false;
 	}
 	
 	for(int i=0;i<nFrames;i++){
@@ -472,6 +485,9 @@ void IParamBezier::waveshape(float* inputs, float* outputs, int nFrames){
 			outputs[i] = bezier_lut_target[bezier_lut_current_length-1].y[3];
 			continue;
 		}
+		
+		
+		// TARGET VALUE
 		
 		//Binary search to find the vertices the sample lies between
 		int lower = 0;
@@ -488,12 +504,46 @@ void IParamBezier::waveshape(float* inputs, float* outputs, int nFrames){
 		if(DEBUG_ASSERTIONS) assert(lower < bezier_lut_target_length);
 		if(DEBUG_ASSERTIONS) assert(lower > -1);
 		
-		
 		__m128 x = _mm_load_ps(bezier_lut_target[lower].x);
 		__m128 y = _mm_load_ps(bezier_lut_target[lower].y);
 		
 		float target_val = cubic_interpolate(x,y,inputs[i]);
 		
-		outputs[i] = target_val; //Fix this maybe
+		
+		// CURRENT VALUE
+		
+		//Binary search to find the vertices the sample lies between
+		lower = 0;
+		higher = bezier_lut_current_length;
+		while(lower<higher){
+			int m = (lower+higher)/2;
+			if(bezier_lut_current[m].x[0] < inputs[i]) lower = m+1;
+			else higher = m;
+		}
+		// At this point lower should count the number of elements less than inputs[i], so
+		lower -= 1;
+		
+		// DEBUG
+		if(DEBUG_ASSERTIONS) assert(lower < bezier_lut_current_length);
+		if(DEBUG_ASSERTIONS) assert(lower > -1);
+		
+		x = _mm_load_ps(bezier_lut_current[lower].x);
+		y = _mm_load_ps(bezier_lut_current[lower].y);
+		
+		float current_val = cubic_interpolate(x,y,inputs[i]);
+		
+		//vv REPLACE THIS ! bad interpolation. Derivative not smooth >:
+		outputs[i] = linear_interpolate(current_val,target_val,clamp(1.f*i/sample_smooth_number,0.f,1.f));
+	}
+	
+	
+	//Update the current if it needs to be
+	if(curve_updated_dsp && lastChannel){
+		if(DEBUG_ASSERTIONS) assert(nFrames >= sample_smooth_number); //Make sure that the sample smooth number is less than the buffer size
+		
+		float_copy((float*) bezier_lut_current, (float*) bezier_lut_target, bezier_lut_target_length*sizeof(bezier_segment)/sizeof(float));
+		bezier_lut_current_length = bezier_lut_target_length;
+		
+		curve_updated_dsp = false;
 	}
 }

@@ -58,7 +58,8 @@ PuglStatus GL3PluginWindow::handleEvent(const PuglEvent* event){
 }
 
 void GL3PluginWindow::Resize(int w,int h,float scale){
-	
+	const PuglEventConfigure e = {PUGL_CONFIGURE,PUGL_IS_SEND_EVENT,0,0,(double)w,(double)h};
+	puglSendEvent(view,(PuglEvent*) &e);
 }
 
 void* GL3PluginWindow::OpenWindow(void* pParent){

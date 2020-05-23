@@ -80,3 +80,12 @@ inline float cubic_interpolate(__m128 x, __m128 y, float in){
 	return _mm_cvtss_f32(res); // p03
 }
 
+inline float linear_interpolate(float v1, float v2, float amt){
+	return (1-amt)*v1+amt*v2;
+}
+
+inline void float_copy(float* dest, float* src, size_t buf_size){
+	for(int i=0;i<buf_size;i++){
+		dest[i] = src[i];
+	}
+}

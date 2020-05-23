@@ -38,7 +38,7 @@ void FacadeSaturator::ProcessBlock(sample** inputs, sample** outputs, int nFrame
 	const int nChans = NOutChansConnected();
   
 	for (int c = 0; c < nChans; c++) {
-		curve.waveshape(inputs[c], outputs[c], nFrames);
+		curve.waveshape(inputs[c], outputs[c], nFrames, c == nChans-1);
 		//Then maybe clamp values to [-1.f,1.f]
 	}
 	
@@ -71,7 +71,7 @@ void* FacadeSaturator::OpenWindow(void* pParent){
 	if(!mWindow){
 		mUI = std::unique_ptr<TestUI>(new TestUI((IEditorDelegate*) this,&curve,oscilloscopeBuffer,NOutChansConnected()>2 ? 2 : NOutChansConnected() ));
 		mWindow = std::unique_ptr<GL3PluginWindow>(new GL3PluginWindow((HWND) pParent,PLUG_WIDTH,PLUG_HEIGHT,PLUG_FPS,1.f, //Fix the HWND when porting
-		{4,1,-1,false,false,false,false,false,false},
+		{4,1,-1,false,false,false,true,false,false},
 		(GL3PluginUI*) mUI.get())); 
 		if(mLastWidth && mLastHeight && mLastScale){
 			mWindow->Resize(mLastWidth, mLastHeight, mLastScale);

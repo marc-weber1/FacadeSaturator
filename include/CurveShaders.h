@@ -17,6 +17,8 @@ const char* SINGLE_COLOR_FRAG_SHADER =
 
 	"uniform vec3 fragment_color;"
 
+	"in vec2 frag_pos;"
+
 	"out vec3 color;"
 
 	"void main(){"
