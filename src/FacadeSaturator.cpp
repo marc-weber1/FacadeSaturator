@@ -14,12 +14,12 @@ FacadeSaturator::FacadeSaturator(const InstanceInfo& info)
 	
 	GetParam(kInitCurvePoint+0)->InitDouble(PARAM_NAMES[kInitCurvePoint+0], -1., -1., 1., 0.001, "");
 	GetParam(kInitCurvePoint+1)->InitDouble(PARAM_NAMES[kInitCurvePoint+1], -1., -1., 1., 0.001, "");
-	GetParam(kInitCurvePoint+2)->InitDouble(PARAM_NAMES[kInitCurvePoint+0], 1., -1., 1., 0.001, "");
-	GetParam(kInitCurvePoint+3)->InitDouble(PARAM_NAMES[kInitCurvePoint+1], 1., -1., 1., 0.001, "");
+	GetParam(kInitCurvePoint+2)->InitDouble(PARAM_NAMES[kInitCurvePoint+2], 1., -1., 1., 0.001, "");
+	GetParam(kInitCurvePoint+3)->InitDouble(PARAM_NAMES[kInitCurvePoint+3], 1., -1., 1., 0.001, "");
 	GetParam(kInitShapePoint+0)->InitDouble(PARAM_NAMES[kInitShapePoint+0], 0.1, 0., 2., 0.001, "");
 	GetParam(kInitShapePoint+1)->InitDouble(PARAM_NAMES[kInitShapePoint+1], 0.05, -2., 2., 0.001, "");
-	GetParam(kInitShapePoint+2)->InitDouble(PARAM_NAMES[kInitShapePoint+0], 0.1, 0., 2., 0.001, "");
-	GetParam(kInitShapePoint+3)->InitDouble(PARAM_NAMES[kInitShapePoint+1], 0.05, -2., 2., 0.001, "");
+	GetParam(kInitShapePoint+2)->InitDouble(PARAM_NAMES[kInitShapePoint+2], 0.1, 0., 2., 0.001, "");
+	GetParam(kInitShapePoint+3)->InitDouble(PARAM_NAMES[kInitShapePoint+3], 0.05, -2., 2., 0.001, "");
 	
 	for(int i=2;i<kNumPoints-1;i++){
 		GetParam(kInitCurvePoint+2*i)->InitDouble(PARAM_NAMES[kInitCurvePoint+2*i], 0., -1., 1., 0.001, "");
@@ -39,7 +39,7 @@ void FacadeSaturator::ProcessBlock(sample** inputs, sample** outputs, int nFrame
   
 	for (int c = 0; c < nChans; c++) {
 		curve.waveshape(inputs[c], outputs[c], nFrames, c == nChans-1);
-		//Then maybe clamp values to [-1.f,1.f]
+		float_clamp(outputs[c],outputs[c],nFrames,-1.f,1.f); //Clamp into [-1,1] with hard clipping
 	}
 	
 	//Copy values to oscilloscope
@@ -71,7 +71,7 @@ void* FacadeSaturator::OpenWindow(void* pParent){
 	if(!mWindow){
 		mUI = std::unique_ptr<TestUI>(new TestUI((IEditorDelegate*) this,&curve,oscilloscopeBuffer,NOutChansConnected()>2 ? 2 : NOutChansConnected() ));
 		mWindow = std::unique_ptr<GL3PluginWindow>(new GL3PluginWindow((HWND) pParent,PLUG_WIDTH,PLUG_HEIGHT,PLUG_FPS,1.f, //Fix the HWND when porting
-		{4,1,-1,false,false,false,true,false,false},
+		{4,1,-1,false,false,false,false,false,false},
 		(GL3PluginUI*) mUI.get())); 
 		if(mLastWidth && mLastHeight && mLastScale){
 			mWindow->Resize(mLastWidth, mLastHeight, mLastScale);

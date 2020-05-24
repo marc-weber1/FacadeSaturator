@@ -300,28 +300,19 @@ GLsizei IParamBezier::get_num_hires(){
 	return (GLsizei) hires_curve.size();
 }
 
-void IParamBezier::update_hires_buffer(){ //Not quite optimized
+void IParamBezier::update_hires_buffer(){
 	hires_curve.clear();
 
 	const size_t num_edges = vertices.size()-1;
 	
 	for(int i=0;i<num_edges;i++){
-		vec2 p1 = vertices[i];
-		vec2 p2 = vertices[i]+vec2(shape_points[i].x,BEZIER_Y_SCALE*shape_points[i].y);
-		vec2 p3 = vertices[i+1]-vec2(shape_points[i+1].x,BEZIER_Y_SCALE*shape_points[i+1].y);
-		vec2 p4 = vertices[i+1];
+		__m128 bezier_x = _mm_set_ps(vertices[i+1].x,vertices[i+1].x-shape_points[i+1].x,vertices[i].x+shape_points[i].x,vertices[i].x);
+		__m128 bezier_y = _mm_set_ps(vertices[i+1].y,vertices[i+1].y-BEZIER_Y_SCALE*shape_points[i+1].y,vertices[i].y+BEZIER_Y_SCALE*shape_points[i].y,vertices[i].y);
 		
 		for(unsigned int j=0;j<CURVE_RESOLUTION;j++){
-			GLfloat t = 1.f*j/CURVE_RESOLUTION;
+			const float t = 1.f*j/CURVE_RESOLUTION;
 			
-			vec2 h1 = p1+(p2-p1)*t;
-			vec2 h2 = p2+(p3-p2)*t;
-			vec2 h3 = p3+(p4-p3)*t;
-			
-			vec2 l1 = h1+(h2-h1)*t;
-			vec2 l2 = h2+(h3-h2)*t;
-			
-			hires_curve.push_back(l1+(l2-l1)*t);
+			hires_curve.push_back(vec2( bezier_value(bezier_x,t),bezier_value(bezier_y,t) ));
 		}
 	}
 	
@@ -395,7 +386,7 @@ void IParamBezier::update_param_from_host(int paramIdx){
 		int vertex_number = (paramIdx-kInitCurvePoint)/2;
 		int is_vertical = (paramIdx-kInitCurvePoint)%2;
 		
-		if(0<=vertex_number && vertex_number < vertices.size()-1){
+		if(0<=vertex_number && vertex_number<=vertices.size()-1){
 			if(is_vertical) vertices[vertex_number].y = (GLfloat) mDelegate->GetParam(paramIdx)->Value();
 			else if(0<vertex_number && vertex_number<vertices.size()-1){ //Can't move the x coord of the first or last vertex
 				update_vertex_x_from_host(vertex_number);
@@ -404,10 +395,10 @@ void IParamBezier::update_param_from_host(int paramIdx){
 		}
 	}
 	else if(kInitShapePoint <= paramIdx && paramIdx < kInitShapePoint+2*current_num_vertices){ //Host moved a tangeant line
-		int vertex_number = (paramIdx-kInitCurvePoint)/2;
-		int is_vertical = (paramIdx-kInitCurvePoint)%2;
+		int vertex_number = (paramIdx-kInitShapePoint)/2;
+		int is_vertical = (paramIdx-kInitShapePoint)%2;
 		
-		if(0<=vertex_number && vertex_number < vertices.size()-1){
+		if(0<=vertex_number && vertex_number<=vertices.size()-1){
 			if(is_vertical) shape_points[vertex_number].y = (GLfloat) mDelegate->GetParam(paramIdx)->Value();
 			else{
 				update_shape_point_x_from_host(vertex_number);

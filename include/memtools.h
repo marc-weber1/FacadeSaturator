@@ -89,3 +89,11 @@ inline void float_copy(float* dest, float* src, size_t buf_size){
 		dest[i] = src[i];
 	}
 }
+
+inline void float_clamp(float* dest, float* src, size_t buf_size, float lower, float higher){
+	for(int i=0;i<buf_size;i++){
+		if(src[i] > higher) dest[i] = higher;
+		else if(src[i] < lower) dest[i] = lower;
+		else dest[i] = src[i];
+	}
+}
