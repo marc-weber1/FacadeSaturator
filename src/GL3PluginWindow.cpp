@@ -38,7 +38,10 @@ PuglStatus GL3PluginWindow::handleEvent(const PuglEvent* event){
 			ui->mouseUp(event->button.button,event->button.x/m_width*2-1,event->button.y/m_height*-2+1);
 			break;
 		case PUGL_MOTION:
-			ui->mouseMove(event->button.x/m_width*2-1,event->button.y/m_height*-2+1);
+			if( puglGetTime(world) - last_mouse_update_time > 1.0/MAX_MOUSE_UPDATES_PER_SECOND ){
+				ui->mouseMove(event->button.x/m_width*2-1,event->button.y/m_height*-2+1);
+				last_mouse_update_time = puglGetTime(world);
+			}
 			break;
 		case PUGL_CREATE:
 			// Load GL functions via GLAD (DOESNT WORK ON MAC !!)

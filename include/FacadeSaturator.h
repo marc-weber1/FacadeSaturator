@@ -13,9 +13,10 @@ const int kNumPoints = 16;
 
 enum EParams
 {
-  kInitCurvePoint=0, //each point has an x,y
-  kInitShapePoint=2*kNumPoints,
-  kNumPointsEnabled=4*kNumPoints,
+  kRemoveDCOffset=0,
+  kInitCurvePoint=1, //each point has an x,y
+  kInitShapePoint=2*kNumPoints+kInitCurvePoint,
+  kNumPointsEnabled=4*kNumPoints+kInitCurvePoint,
   kNumParams
 };
 
@@ -33,6 +34,7 @@ public:
 #endif
 
 #if IPLUG_DSP // http://bit.ly/2S64BDd
+  void OnActivate(bool enable) override;
   void ProcessBlock(sample** inputs, sample** outputs, int nFrames) override;
 #endif
 

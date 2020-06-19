@@ -47,6 +47,9 @@ public:
 	
 	
 	const static uintptr_t REDRAW_TIMER_ID = 0;
+	const static int MAX_MOUSE_UPDATES_PER_SECOND = 30; //Set to -1 for no limit
+	
+	double last_mouse_update_time = 0.0;
 	unsigned framesDrawn;
 	
 private:

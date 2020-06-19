@@ -275,10 +275,6 @@ GLsizei IParamBezier::get_num_vertices(){
 	return (GLsizei) vertices.size();
 }
 
-/*GLsizeiptr IParamBezier::get_vertex_buffer_size(){
-	return get_stride()*get_num_vertices();
-}*/
-
 void IParamBezier::get_shape_point_buffer(std::vector<vec2>& points){
 	const size_t num_vertices = shape_points.size();
 	for(int i=0;i<num_vertices;i++){
@@ -431,38 +427,95 @@ void IParamBezier::update_params_from_host(){ //Host is either refreshing or ini
 	}
 	
 	if(DEBUG_ASSERTIONS) check_assertions();
+	
+	curve_updated_ui = true;
+	curve_updated_dsp = true;
 }
 
 
+float IParamBezier::waveshape(float input, bezier_segment* curve, unsigned curve_size){
+	//Binary search to find the vertices the sample lies between
+	int lower = 0;
+	int higher = curve_size;
+	while(lower<higher){
+		int m = (lower+higher)/2;
+		if(curve[m].x[0] < input) lower = m+1;
+		else higher = m;
+	}
+	// At this point lower should count the number of elements less than inputs[i], so
+	lower -= 1;
+	
+	// DEBUG
+	if(DEBUG_ASSERTIONS) assert(lower < curve_size);
+	if(DEBUG_ASSERTIONS) assert(lower > -1);
+	
+	__m128 x = _mm_load_ps(curve[lower].x);
+	__m128 y = _mm_load_ps(curve[lower].y);
+	
+	return cubic_interpolate(x,y,input);
+}
 
-// Get function values from host - CALLED FROM DSP THREAD - USE CAUTION - OPTIMIZE
+
+// Get function values for host - CALLED FROM DSP THREAD - USE CAUTION - OPTIMIZE
 
 void IParamBezier::waveshape(float* inputs, float* outputs, int nFrames, bool lastChannel){
-	//__m128 f;
 	
-	if(curve_updated_dsp){
+	// Update the curve if it needs to be (MAYBE DON'T DO THIS IN THE RT AUDIO THREAD, WORST CASE TIME IS BAD ??
+	if(curve_updated_dsp && !lastChannel){ // DOESNT WORK WHEN CHANNELS > 2
 		
-		bezier_lut_target_length = vertices.size()-1; //This is a race condition oops, what if vertices changes size
+		bezier_lut_target_length = (unsigned) mDelegate->GetParam(kNumCurvePoints)->Int() - 1;
 		
+		//Update curve points
 		for(int i=0;i<bezier_lut_target_length;i++){
 			if(i==0) bezier_lut_target[i].x[0] =  -1.f;
-			else bezier_lut_target[i].x[0] = vertices[i].x;
-			if(i==bezier_lut_target_length-1) bezier_lut_target[i].x[3] = 1.f;
-			else bezier_lut_target[i].x[3] = vertices[i+1].x;
+			else{
+				bezier_lut_target[i].x[0] = (float) mDelegate->GetParam(kInitCurvePoint+2*i)->Value();
+				if(bezier_lut_target[i-1].x[0] > bezier_lut_target[i].x[0]) bezier_lut_target[i].x[0] = bezier_lut_target[i-1].x[0]; // Clamp vertex with previous vertex
+				
+				bezier_lut_target[i-1].x[3] = bezier_lut_target[i].x[0];
+			}
+			if(i==bezier_lut_target_length-1) bezier_lut_target[i].x[3] = 1.f; // The last vertex
 			
-			bezier_lut_target[i].y[0] = vertices[i].y;
-			bezier_lut_target[i].y[3] = vertices[i+1].y;
+			bezier_lut_target[i].y[0] = (float) mDelegate->GetParam(kInitCurvePoint+2*i+1)->Value();
+			bezier_lut_target[i].y[3] = (float) mDelegate->GetParam(kInitCurvePoint+2*(i+1)+1)->Value();
+		}
+		
+		// Update shape points
+		for(int i=0;i<bezier_lut_target_length;i++){
 			
 			//Calculate some intermediate values with the shape points
-			__m128 bezier_points_x = _mm_set_ps(bezier_lut_target[i].x[3],bezier_lut_target[i].x[3]-shape_points[i+1].x,bezier_lut_target[i].x[0]+shape_points[i].x,bezier_lut_target[i].x[0]); // [P3,P2,P1,P0]
+			float sp1_x = (float)mDelegate->GetParam(kInitShapePoint+2*i)->Value();
+			if(bezier_lut_target[i].x[0]+sp1_x > bezier_lut_target[i].x[3]) sp1_x = bezier_lut_target[i].x[3] - bezier_lut_target[i].x[0]; // Clamp using next vertex
+			if(i > 0){
+				float sp_prev_x = bezier_lut_target[i-1].x[0]+(float)mDelegate->GetParam(kInitShapePoint+2*(i-1))->Value();
+				if(bezier_lut_target[i].x[0]-sp1_x < sp_prev_x) sp1_x = bezier_lut_target[i].x[0] - sp_prev_x; //Clamp using previous shape point
+			}
+			
+			float sp2_x = (float)mDelegate->GetParam(kInitShapePoint+2*(i+1))->Value();
+			if( i < bezier_lut_target_length-1 ){
+				if(bezier_lut_target[i+1].x[0]+sp2_x > bezier_lut_target[i+1].x[3]) sp2_x = bezier_lut_target[i+1].x[3]-bezier_lut_target[i+1].x[0]; // Clamp using next vertex
+			}
+			float sp_current_x = bezier_lut_target[i].x[0]+sp1_x;
+			if(bezier_lut_target[i].x[3]-sp2_x < sp_current_x) sp2_x = bezier_lut_target[i].x[3]-sp_current_x; // Clamp using previous shape point
+			
+			__m128 bezier_points_x = _mm_set_ps(bezier_lut_target[i].x[3],
+												bezier_lut_target[i].x[3]-sp2_x,
+												bezier_lut_target[i].x[0]+sp1_x,
+												bezier_lut_target[i].x[0]); // [P3,P2,P1,P0]
 			bezier_lut_target[i].x[1] = bezier_value(bezier_points_x,0.333333f);
 			bezier_lut_target[i].x[2] = bezier_value(bezier_points_x,0.666667f);
 			
 			//And agen wida
-			__m128 bezier_points_y = _mm_set_ps(bezier_lut_target[i].y[3],bezier_lut_target[i].y[3]-BEZIER_Y_SCALE*shape_points[i+1].y,bezier_lut_target[i].y[0]+BEZIER_Y_SCALE*shape_points[i].y,bezier_lut_target[i].y[0]);
+			__m128 bezier_points_y = _mm_set_ps(bezier_lut_target[i].y[3],
+												bezier_lut_target[i].y[3]-BEZIER_Y_SCALE*(float)mDelegate->GetParam(kInitShapePoint+2*(i+1)+1)->Value(),
+												bezier_lut_target[i].y[0]+BEZIER_Y_SCALE*(float)mDelegate->GetParam(kInitShapePoint+2*i+1)->Value(),
+												bezier_lut_target[i].y[0]);
 			bezier_lut_target[i].y[1] = bezier_value(bezier_points_y,0.333333f);
 			bezier_lut_target[i].y[2] = bezier_value(bezier_points_y,0.666667f);
 		}
+		
+		//Find the DC offset by waveshaping 0.f in the target LUT
+		dc_offset_target = waveshape(0.f,bezier_lut_target,bezier_lut_target_length);
 	}
 	
 	for(int i=0;i<nFrames;i++){
@@ -477,54 +530,17 @@ void IParamBezier::waveshape(float* inputs, float* outputs, int nFrames, bool la
 			continue;
 		}
 		
+		float target_val = waveshape(inputs[i],bezier_lut_target,bezier_lut_target_length);
+		float current_val = waveshape(inputs[i],bezier_lut_current,bezier_lut_current_length);
 		
-		// TARGET VALUE
+		//Clamp the integer weights
+		int weight_index = i;
+		if(weight_index>=sample_smooth_number) weight_index = sample_smooth_number-1;
 		
-		//Binary search to find the vertices the sample lies between
-		int lower = 0;
-		int higher = bezier_lut_target_length;
-		while(lower<higher){
-			int m = (lower+higher)/2;
-			if(bezier_lut_target[m].x[0] < inputs[i]) lower = m+1;
-			else higher = m;
-		}
-		// At this point lower should count the number of elements less than inputs[i], so
-		lower -= 1;
+		outputs[i] = linear_interpolate(target_val,current_val,sample_smooth_weights[ weight_index ]);
 		
-		// DEBUG
-		if(DEBUG_ASSERTIONS) assert(lower < bezier_lut_target_length);
-		if(DEBUG_ASSERTIONS) assert(lower > -1);
-		
-		__m128 x = _mm_load_ps(bezier_lut_target[lower].x);
-		__m128 y = _mm_load_ps(bezier_lut_target[lower].y);
-		
-		float target_val = cubic_interpolate(x,y,inputs[i]);
-		
-		
-		// CURRENT VALUE
-		
-		//Binary search to find the vertices the sample lies between
-		lower = 0;
-		higher = bezier_lut_current_length;
-		while(lower<higher){
-			int m = (lower+higher)/2;
-			if(bezier_lut_current[m].x[0] < inputs[i]) lower = m+1;
-			else higher = m;
-		}
-		// At this point lower should count the number of elements less than inputs[i], so
-		lower -= 1;
-		
-		// DEBUG
-		if(DEBUG_ASSERTIONS) assert(lower < bezier_lut_current_length);
-		if(DEBUG_ASSERTIONS) assert(lower > -1);
-		
-		x = _mm_load_ps(bezier_lut_current[lower].x);
-		y = _mm_load_ps(bezier_lut_current[lower].y);
-		
-		float current_val = cubic_interpolate(x,y,inputs[i]);
-		
-		//vv REPLACE THIS ! bad interpolation. Derivative not smooth >:
-		outputs[i] = linear_interpolate(current_val,target_val,clamp(1.f*i/sample_smooth_number,0.f,1.f));
+		//Remove the DC offset if necessary
+		if( mDelegate->GetParam(kRemoveDCOffset)->Bool() ) outputs[i] -= linear_interpolate(dc_offset_target,dc_offset_current,sample_smooth_weights[ weight_index ]);
 	}
 	
 	
@@ -534,6 +550,7 @@ void IParamBezier::waveshape(float* inputs, float* outputs, int nFrames, bool la
 		
 		float_copy((float*) bezier_lut_current, (float*) bezier_lut_target, bezier_lut_target_length*sizeof(bezier_segment)/sizeof(float));
 		bezier_lut_current_length = bezier_lut_target_length;
+		dc_offset_current = dc_offset_target;
 		
 		curve_updated_dsp = false;
 	}
