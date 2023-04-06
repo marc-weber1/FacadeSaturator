@@ -4,21 +4,12 @@
 
 #include "GL3PluginWindow.h"
 #include "TestUI.h"
-#include "IParamBezier.h"
 #include "ringbuf.h"
 
 const int kNumPrograms = 1;
+const int kNumParams = 0;
 
-const int kNumPoints = 16;
-
-enum EParams
-{
-  kRemoveDCOffset=0,
-  kInitCurvePoint=1, //each point has an x,y
-  kInitShapePoint=2*kNumPoints+kInitCurvePoint,
-  kNumPointsEnabled=4*kNumPoints+kInitCurvePoint,
-  kNumParams
-};
+// enum EParams {};
 
 using namespace iplug;
 
@@ -47,7 +38,6 @@ private:
 	int mLastHeight = 0;
 	float mLastScale = 0.f;
 	bool mClosing = false;
-	IParamBezier curve;
 	WDL_TypedRingBuf<float> oscilloscopeBuffer[2];
 	
 };

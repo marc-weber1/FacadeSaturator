@@ -2,22 +2,21 @@
 
 #include "GL3PluginUI.h"
 
-#include <vector>
 #include "IPlugEditorDelegate.h"
 #include "IPlugParameter.h"
-#include "IParamBezier.h"
 #include "ringbuf.h"
 #include "memtools.h"
 
 #include <iostream>
 #include <fstream>
+#include <vector>
 
 
 class TestUI : public GL3PluginUI{
 public:
 
-	TestUI(iplug::IEditorDelegate* mDelegate_t, IParamBezier* curve_t, WDL_TypedRingBuf<float>* oscilloscopeBuffer_t, int numOscBuffers_t):
-		  mDelegate(mDelegate_t), curve(curve_t),
+	TestUI(iplug::IEditorDelegate* mDelegate_t, WDL_TypedRingBuf<float>* oscilloscopeBuffer_t, int numOscBuffers_t):
+		  mDelegate(mDelegate_t),
 		  oscilloscopeBuffer(oscilloscopeBuffer_t), numOscBuffers(numOscBuffers_t) {
 		oscilloscopeBuffer[0].SetSize(OSCILLOSCOPE_BUFFER_SIZE);
 		oscilloscopeBuffer[0].Fill(0.f);
@@ -35,9 +34,9 @@ public:
 	void drawFrame(PuglView*) override;
 	
 	// UI Manipulation
-	void mouseDown(uint32_t button,double x,double y) override;
-	void mouseUp(uint32_t button,double x,double y) override;
-	void mouseMove(double x, double y) override;
+	void mouseDown(uint32_t button,double x,double y) {};
+	void mouseUp(uint32_t button,double x,double y) {};
+	void mouseMove(double x, double y) {};
 	
 	// Parameters
 	//void setParameterFromUI(int paramIdx, double val);
@@ -64,22 +63,8 @@ private:
 	int numOscBuffers;
 	WDL_TypedRingBuf<float>* oscilloscopeBuffer;
 	float oscilloscope_x_coords[OSCILLOSCOPE_BUFFER_SIZE*2];
-
-	IParamBezier* curve;
 	
-	CurvePoint selected_point = NULL_CURVE_POINT;
-	enum MOUSE_BUTTON{
-		LEFT_MOUSE_BTN = 1,
-		RIGHT_MOUSE_BTN = 3,
-		NUMBER_MOUSE_BUTTONS
-	};
-	bool mouse_down[NUMBER_MOUSE_BUTTONS] = {false};
-	
-	const glm::vec3 color_tangeants = {0.f,1.f,0.f};
-	const glm::vec3 color_shape_circles = {0.5f,0.f,1.f};
-	const glm::vec3 color_circles = {1.f,0.f,1.f};
 	const glm::vec3 color_lines = {0.85f,0.85f,0.85f};
-	const glm::vec3 color_curve = {0.f,1.f,1.f};
 	const GLfloat image_brightness = 0.7f;
 	
 	const GLfloat ENTIRE_SCREEN[12] = { -1.f,1.f, -1.f,-1.f, 1.f,-1.f,

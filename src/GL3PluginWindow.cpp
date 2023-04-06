@@ -14,7 +14,7 @@ static void puglLog(PuglWorld* world, PuglLogLevel level, const char* msg){
 }
 
 
-GL3PluginWindow::GL3PluginWindow(void* pParent,unsigned w, unsigned h, unsigned fps, float scale, const PuglOptions opts, GL3PluginUI* ui_t): m_width(w), m_height(h), m_fps(fps), m_scale(scale), m_opts(opts), ui(ui_t){}
+GL3PluginWindow::GL3PluginWindow(unsigned w, unsigned h, unsigned fps, float scale, const PuglOptions opts, GL3PluginUI* ui_t): m_width(w), m_height(h), m_fps(fps), m_scale(scale), m_opts(opts), ui(ui_t){}
 
 PuglStatus GL3PluginWindow::handleEvent(const PuglEvent* event){
 	switch(event->type){

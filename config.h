@@ -8,6 +8,7 @@
 #define PLUG_EMAIL_STR "spam@me.com"
 #define PLUG_COPYRIGHT_STR "n/a"
 #define PLUG_CLASS_NAME FacadeSaturator
+#define PLUG_HOST_RESIZE true
 
 #define BUNDLE_NAME "FacadeSaturator"
 #define BUNDLE_MFR "Facade"

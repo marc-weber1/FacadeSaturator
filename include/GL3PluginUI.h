@@ -4,6 +4,8 @@ extern "C" {
 	#include "pugl/pugl.h"
 }
 
+#include "glad/glad.h"
+
 class GL3PluginUI{
 public:
 	virtual bool initGLContext() = 0;

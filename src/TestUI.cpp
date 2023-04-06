@@ -18,7 +18,6 @@ bool TestUI::initGLContext(){
 	
 	//Compile Shader
 	single_color_shader = LoadShaders(VERTEX_2D_SHADER_BASIC, SINGLE_COLOR_FRAG_SHADER);
-	circle_shader = LoadShaders(VERTEX_2D_SHADER_BASIC, SINGLE_COLOR_FRAG_SHADER, POINT_CIRCLE_GEOMETRY_SHADER);
 	image_shader = LoadShaders(VERTEX_2D_SHADER_BASIC, IMAGE_FRAG_SHADER);
 	if (!single_color_shader || !circle_shader || !image_shader) {
 		printf("Failed to compile shaders.\n");
@@ -28,15 +27,6 @@ bool TestUI::initGLContext(){
 	// SET SINGLE COLOR UNIFORMS
 	glUseProgram(single_color_shader);
 	line_color_uniform = glGetUniformLocation(single_color_shader,"fragment_color");
-	
-	// SET CIRCLE UNIFORMS
-	glUseProgram(circle_shader);
-	// Color of circles does not change, so set it once
-	GLint circle_color_uniform = glGetUniformLocation(circle_shader,"fragment_color");
-	glUniform3fv(circle_color_uniform,1,&color_circles.x);
-	// Aspect ratio however changes every time the window is configured oops maybe fix that later
-	GLint aspect_ratio_uniform = glGetUniformLocation(circle_shader,"aspect_ratio");
-	glUniform1f(aspect_ratio_uniform,1.f); //Sometimes not 1??
 	
 	// SET IMAGE UNIFORMS
 	glUseProgram(image_shader);
@@ -66,7 +56,7 @@ bool TestUI::initGLContext(){
 	
 	//Where are the data chunks in the buffer?
 	glVertexAttribPointer( //position
-		0,2,GL_FLOAT,GL_FALSE,curve->get_stride(),(void*)0
+		0,2,GL_FLOAT,GL_FALSE,sizeof(GL_FLOAT)*2,(void*)0
 	);
 	glEnableVertexAttribArray(0);
 	
@@ -79,7 +69,6 @@ void TestUI::destroyGLContext(){
 	glDeleteVertexArrays(1, &vao);
 	glDeleteBuffers(1, &vbo);
 	glDeleteProgram(single_color_shader);
-	glDeleteProgram(circle_shader);
 }
 
 void TestUI::drawFrame(PuglView* view_t){
@@ -113,74 +102,4 @@ void TestUI::drawFrame(PuglView* view_t){
 	// RENDER OSCILLOSCOPE LINES
 	glUniform3fv(line_color_uniform,1,&color_lines.x);
 	glDrawArrays(GL_LINE_STRIP,0,OSCILLOSCOPE_BUFFER_SIZE*2);
-	
-	// Buffer shape points
-	std::vector<glm::vec2> shape_points; //Could reduce the amount of calls for this
-	curve->get_shape_point_buffer(shape_points);
-	glBufferData(GL_ARRAY_BUFFER,sizeof(glm::vec2)*shape_points.size(),shape_points.data(),GL_STATIC_DRAW);
-	
-	// RENDER THE TANGEANT LINES
-	glUniform3fv(line_color_uniform,1,&color_tangeants.x);
-	glDrawArrays(GL_LINES,0,shape_points.size());
-	
-	// RENDER THE SHAPE CIRCLES
-	glUseProgram(circle_shader);
-	glUniform3fv(line_color_uniform,1,&color_shape_circles.x);
-	glDrawArrays(GL_POINTS,0,shape_points.size());
-	
-	// Buffer vertices
-	glBufferData(GL_ARRAY_BUFFER,curve->get_stride()*curve->get_num_vertices(),curve->get_vertex_ptr(),GL_STATIC_DRAW);
-	
-	// RENDER THE POINT CIRCLES
-	glDrawArrays(GL_POINTS,0,curve->get_num_vertices());
-	
-	// Buffer the hi-res curve
-	void* hires_ptr = curve->get_hires_ptr();
-	glBufferData(GL_ARRAY_BUFFER,curve->get_stride()*curve->get_num_hires(),hires_ptr,GL_STATIC_DRAW);
-	
-	// RENDER THE CURVE (hires)
-	glUseProgram(single_color_shader);
-	glUniform3fv(line_color_uniform,1,&color_curve.x);
-	glDrawArrays(GL_LINE_STRIP,0,curve->get_num_hires());
-}
-
-
-
-// UI Mouse Interaction
-
-void TestUI::mouseDown(uint32_t button,double x,double y){
-	if(button == LEFT_MOUSE_BTN){
-		CurvePoint index_at_point = curve->check_point(glm::vec2(x,y));
-		
-		if(index_at_point.exists()) selected_point = index_at_point;
-	}
-	else if(button == RIGHT_MOUSE_BTN){
-		CurvePoint index_at_point = curve->check_point(glm::vec2(x,y));
-		
-		if(!index_at_point.exists()){ //Add point
-			selected_point = curve->add_point_from_UI(glm::vec2(x,y));
-		}
-		else if(index_at_point.point_type == VERTEX){ //Remove point
-			selected_point=NULL_CURVE_POINT;
-			curve->remove_point_from_UI(index_at_point);
-		}
-		else if(index_at_point.point_type == SHAPE_POINT){
-			
-		}
-	}
-	
-	mouse_down[button] = true;
-}
-
-void TestUI::mouseUp(uint32_t button,double x,double y){
-	selected_point = NULL_CURVE_POINT;
-	mouse_down[button] = false;
-}
-
-void TestUI::mouseMove(double x, double y){
-	if( mouse_down[LEFT_MOUSE_BTN] || mouse_down[RIGHT_MOUSE_BTN] ){
-		if(selected_point.exists()){
-			curve->move_point_from_UI(selected_point,glm::vec2(x,y));
-		}
-	}
 }

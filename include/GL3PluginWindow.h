@@ -36,7 +36,7 @@ public:
 	} PuglOptions;
 
 
-	GL3PluginWindow(void* pParent, unsigned w, unsigned h, unsigned fps, float scale, const PuglOptions opts,GL3PluginUI* ui_t);
+	GL3PluginWindow(unsigned w, unsigned h, unsigned fps, float scale, const PuglOptions opts,GL3PluginUI* ui_t);
 	
 	void Resize(int w, int h, float scale);
 	void* OpenWindow(void* pParent);
