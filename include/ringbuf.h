@@ -28,7 +28,7 @@
 class WDL_RingBuf
 {
 public:
-  WDL_RingBuf() : m_hb(4096 WDL_HEAPBUF_TRACEPARM("WDL_RingBuf"))
+  WDL_RingBuf() : m_hb(4096)
   {
     m_inbuf = m_wrptr = 0;
   }

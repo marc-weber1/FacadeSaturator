@@ -38,41 +38,41 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Tracer|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Tracer|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -308,15 +308,13 @@
     <ClCompile Include="..\..\iPlug2\IPlug\IPlugPluginBase.cpp" />
     <ClCompile Include="..\..\iPlug2\IPlug\IPlugProcessor.cpp" />
     <ClCompile Include="..\..\iPlug2\IPlug\IPlugTimer.cpp" />
-	<ClCompile Include="..\..\iPlug2\Dependencies\IGraphics\glad_GL3\src\glad.c" />
-	
-	<ClCompile Include="..\..\pugl\pugl\detail\implementation.c" />
-	<ClCompile Include="..\..\pugl\pugl\detail\win.c" />
-	<ClCompile Include="..\..\pugl\pugl\detail\win_gl.c" />
-	
-	<ClCompile Include="..\src\FacadeSaturator.cpp" />
-	<ClCompile Include="..\src\GL3PluginWindow.cpp" />
-	<ClCompile Include="..\src\TestUI.cpp" />
+    <ClCompile Include="..\..\iPlug2\Dependencies\IGraphics\glad_GL3\src\glad.c" />
+    <ClCompile Include="..\..\pugl\pugl\detail\implementation.c" />
+    <ClCompile Include="..\..\pugl\pugl\detail\win.c" />
+    <ClCompile Include="..\..\pugl\pugl\detail\win_gl.c" />
+    <ClCompile Include="..\src\FacadeSaturator.cpp" />
+    <ClCompile Include="..\src\GL3PluginWindow.cpp" />
+    <ClCompile Include="..\src\TestUI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resources\main.rc" />
@@ -327,7 +325,7 @@
   <ItemGroup>
     <None Include="..\config\FacadeSaturator-ios.xcconfig" />
     <None Include="..\config\FacadeSaturator-web.mk" />
-    <None Include="..\config\FacadeSaturator-win.props" >
+    <None Include="..\config\FacadeSaturator-win.props">
       <SubType>Designer</SubType>
     </None>
     <None Include="..\config\FacadeSaturator-mac.xcconfig" />
